@@ -84,6 +84,7 @@ struct context {
 /// SGL variables
 
 bool sglBeginEndRunning = false;
+bool sglBeginEndSceneRunning = false;
 
 std::vector<context*> contexts;
 int contextCounter = 0;
@@ -138,42 +139,76 @@ const char* sglGetErrorString(sglEErrorCode error)
 void sglInit(void) {
 	currentContext = 0;
 	testFunction();
+	try {
+		// TODO ...
+		// Alloc all needed data structures
+	}
+	catch (std::bad_alloc &e) {
+		std::cerr << "Allocation failed! Message: " << e.what() << std::endl;
+		_libStatus = SGL_OUT_OF_MEMORY;
+		return;
+	}
 }
 
 void sglFinish(void) {
-    for (int i = 0; i < contexts.size(); i++) {
+    for (unsigned int i = 0; i < contexts.size(); i++) {
         delete contexts[i];
     }
 
 }
 
 int sglCreateContext(int width, int height) {
-    context *thisContext = new context(width, height, contextCounter);
+
+	if (contextCounter > 50) { _libStatus = SGL_OUT_OF_RESOURCES; return -1; }
+
+	context *thisContext;
+	try {
+		thisContext = new context(width, height, contextCounter);
+	}
+	catch (std::bad_alloc &e) {
+		std::cerr << "Allocation failed! Message: " << e.what() << std::endl;
+		_libStatus = SGL_OUT_OF_MEMORY;
+		return -1;
+	}
+	
     contexts.push_back(thisContext);
     contextCounter++;
 	return thisContext->index;
 }
 
 void sglDestroyContext(int id) {
-    for (int i = 0; i < contexts.size(); i++) {
+
+	if (currentContext->index == id) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	bool found = false;
+    for (unsigned int i = 0; i < contexts.size(); i++) {
         int cont = contexts[i]->index;
         if (cont == id) {
             delete contexts[i];
             contexts.erase(contexts.begin() + id);
+			--contextCounter;
+			found = true;
+			break;
         }
     }
+	if (!found) _libStatus = SGL_INVALID_VALUE;
 }
 
 void sglSetContext(int id) {
-    for (int i = 0; i < contexts.size(); i++) {
+
+	bool found = false;
+    for (unsigned int i = 0; i < contexts.size(); i++) {
         if (id == contexts[i]->index) {
             currentContext = contexts[i];
-            break;
+			found = true;
+			break;
         }
     }
+	if (!found) _libStatus = SGL_INVALID_VALUE;
 }
 
 int sglGetContext(void) {
+	if (!currentContext) { _libStatus = SGL_INVALID_OPERATION; return -1; }
     return currentContext->index;
 }
 
@@ -186,34 +221,48 @@ float *sglGetColorBufferPointer(void) {
 //---------------------------------------------------------------------------
 
 void sglClearColor(float r, float g, float b, float alpha) {
-    std::cout << currentContext->index << std::endl;
+	if (!currentContext || sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
+   
+	//std::cout << currentContext->index << std::endl;
     currentContext->clearColor.r = r;
     currentContext->clearColor.g = g;
     currentContext->clearColor.b = b;
 }
 
 void sglClear(unsigned what) {
-    if (what == SGL_COLOR_BUFFER_BIT) {
+	if (!currentContext || sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
+    
+	if (what == SGL_COLOR_BUFFER_BIT) {
         for (int i = 0; i < currentContext->width * currentContext->height; i += 3) {
             currentContext->colorBuffer[i] = currentContext->clearColor.r;
             currentContext->colorBuffer[i + 1] = currentContext->clearColor.g;
             currentContext->colorBuffer[i + 2] = currentContext->clearColor.b;
         }
     }
-    else {
+    else if (what == SGL_DEPTH_BUFFER_BIT){
         for (int i = 0; i < currentContext->width * currentContext->height; i += 1) {
             currentContext->depthBuffer[i] = INFINITY;
         }
-    }
+	}
+	else {
+		_libStatus = SGL_INVALID_VALUE;
+		return;
+	}
 }
 
 void sglBegin(sglEElementType mode) {
-    sglBeginEndRunning = true;
+	if (sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
+	
+	if (mode > 8 || mode < 1) {_libStatus = SGL_INVALID_ENUM; return;}
+    
+	sglBeginEndRunning = true;
     currentContext->elementType = mode;
 }
 
 void sglEnd(void) {
-    sglBeginEndRunning = false;
+	if (!sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
+    
+	sglBeginEndRunning = false;
 }
 
 void sglVertex4f(float x, float y, float z, float w) {
@@ -230,14 +279,24 @@ void sglVertex2f(float x, float y) {
 
 void sglCircle(float x, float y, float z, float radius) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (radius < 0) { _libStatus = SGL_INVALID_VALUE; return; }
+
 }
 
 void sglEllipse(float x, float y, float z, float a, float b) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (a < 0 || b < 0) { _libStatus = SGL_INVALID_VALUE; return; }
 }
 
 void sglArc(float x, float y, float z, float radius, float from, float to) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (radius < 0) { _libStatus = SGL_INVALID_VALUE; return; }
 }
 
 //---------------------------------------------------------------------------
@@ -245,18 +304,29 @@ void sglArc(float x, float y, float z, float radius, float from, float to) {
 //---------------------------------------------------------------------------
 
 void sglMatrixMode(sglEMatrixMode mode) {
-    currentContext->matrixMode = mode;
+	if (mode > 2 || mode < 0) { _libStatus = SGL_INVALID_ENUM; return; }
+	
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+    
+	currentContext->matrixMode = mode;
 }
 
 void sglPushMatrix(void) {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
  
 }
 
 void sglPopMatrix(void) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
 }
 
 void sglLoadIdentity(void) {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+	
     if (currentContext->matrixMode == SGL_PROJECTION) {
         currentContext->projectionMatricesStack.push_back(identity);
     }
@@ -267,48 +337,74 @@ void sglLoadIdentity(void) {
 
 void sglLoadMatrix(const float *matrix) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
 }
 
 void sglMultMatrix(const float *matrix) {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 }
 
 void sglTranslate(float x, float y, float z) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
 }
 
 void sglScale(float scalex, float scaley, float scalez) {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 }
 
 void sglRotate2D(float angle, float centerx, float centery) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
 }
 
 void sglRotateY(float angle) {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 }
 
 void sglOrtho(float left, float right, float bottom, float top, float near, float far) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (left == right || top == bottom || near == far) { _libStatus = SGL_INVALID_VALUE; return; }
+
+
 }
 
 void sglFrustum(float left, float right, float bottom, float top, float near, float far) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (left == right || top == bottom || near == far || near < 0 || far < 0) { _libStatus = SGL_INVALID_VALUE; return; }
+
 }
 
 void sglViewport(int x, int y, int width, int height) {
-    currentContext->vieportMatrix[0][0] = width/2;
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (width < 0 || height < 0) { _libStatus = SGL_INVALID_VALUE; return; }
+
+    currentContext->vieportMatrix[0][0] = width/2.0f;
     currentContext->vieportMatrix[0][1] = 0;
     currentContext->vieportMatrix[0][2] = 0;
-    currentContext->vieportMatrix[0][3] = x+width/2;
+    currentContext->vieportMatrix[0][3] = x+width/2.0f;
     currentContext->vieportMatrix[1][0] = 0;
-    currentContext->vieportMatrix[1][1] = height/2;
+    currentContext->vieportMatrix[1][1] = height/2.0f;
     currentContext->vieportMatrix[1][2] = 0;
-    currentContext->vieportMatrix[1][3] = y + height / 2;
+    currentContext->vieportMatrix[1][3] = y + height / 2.0f;
     currentContext->vieportMatrix[2][0] = 0;
     currentContext->vieportMatrix[2][1] = 0;
-    currentContext->vieportMatrix[2][2] = 1;
+    currentContext->vieportMatrix[2][2] = 1.0f;
     currentContext->vieportMatrix[2][3] = 0;
     currentContext->vieportMatrix[3][0] = 0;
     currentContext->vieportMatrix[3][1] = 0;
@@ -321,6 +417,9 @@ void sglViewport(int x, int y, int width, int height) {
 //---------------------------------------------------------------------------
 
 void sglColor3f(float r, float g, float b) {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
     currentContext->drawingColor.r = r;
     currentContext->drawingColor.g = g;
     currentContext->drawingColor.b = b;
@@ -329,17 +428,37 @@ void sglColor3f(float r, float g, float b) {
 
 void sglAreaMode(sglEAreaMode mode) {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (mode > 2 || mode < 0) { _libStatus = SGL_INVALID_ENUM; return; }
+
+
 }
 
 void sglPointSize(float size) {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (size < 0) { _libStatus = SGL_INVALID_VALUE; return; }
+
     currentContext->pointSize = size;
 }
 
 void sglEnable(sglEEnableFlags cap) {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (cap != 1) { _libStatus = SGL_INVALID_ENUM; return; }
+
     currentContext->depthTest = cap;
 }
 
 void sglDisable(sglEEnableFlags cap) {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	if (cap != 1) { _libStatus = SGL_INVALID_ENUM; return; }
+
     currentContext->depthTest = cap;
 }
 
@@ -349,9 +468,17 @@ void sglDisable(sglEEnableFlags cap) {
 
 void sglBeginScene() {
 
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	sglBeginEndSceneRunning = true;
+
 }
 
 void sglEndScene() {
+
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	sglBeginEndSceneRunning = false;
 
 }
 
@@ -360,7 +487,7 @@ void sglSphere(const float x,
                const float z,
                const float radius) 
 {
-
+	if (sglBeginEndRunning || sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 }
 
 void sglMaterial(const float r,
@@ -382,22 +509,22 @@ void sglPointLight(const float x,
                    const float g,
                    const float b) 
 {
-
+	if (sglBeginEndRunning || sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 }
 
 void sglRayTraceScene() {
-
+	if (sglBeginEndRunning || sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 }
 
 void sglRasterizeScene() {
-
+	if (sglBeginEndRunning || sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 }
 
 void sglEnvironmentMap(const int width,
                        const int height,
                        float *texels)
 {
-
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 }
 
 void sglEmissiveMaterial(const float r,
@@ -407,5 +534,5 @@ void sglEmissiveMaterial(const float r,
                          const float c1,
                          const float c2)
 {
-
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 }
