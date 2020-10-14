@@ -46,7 +46,7 @@ struct vertex {
     }
 };
 
-struct context {
+struct Context {
     int width, height;
     int index;
     colorPixel clearColor;
@@ -67,7 +67,7 @@ struct context {
     std::vector<std::array<float, 16>> projectionMatricesStack;
     std::vector<vertex*> vertexBuffer;
 
-    context(int width, int height, int index) {
+    Context(int width, int height, int index) {
         this->width = width;
         this->height = height;
         this->index = index;
@@ -86,9 +86,9 @@ struct context {
 bool sglBeginEndRunning = false;
 bool sglBeginEndSceneRunning = false;
 
-std::vector<context*> contexts;
+std::vector<Context*> contexts;
 int contextCounter = 0;
-context* currentContext;
+Context* currentContext;
 std::array<float, 16> identity{ {1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0} };
 
 
@@ -152,7 +152,16 @@ void sglInit(void) {
 
 void sglFinish(void) {
     for (unsigned int i = 0; i < contexts.size(); i++) {
-        delete contexts[i];
+		Context *curr = contexts[i];
+
+		free(curr->colorBuffer);
+		free(curr->depthBuffer);
+
+		for (unsigned int j = 0; j < curr->vertexBuffer.size(); ++j) {
+			delete curr->vertexBuffer[i];
+		}
+
+        delete curr;
     }
 
 }
@@ -161,9 +170,9 @@ int sglCreateContext(int width, int height) {
 
 	if (contextCounter > 50) { _libStatus = SGL_OUT_OF_RESOURCES; return -1; }
 
-	context *thisContext;
+	Context *thisContext;
 	try {
-		thisContext = new context(width, height, contextCounter);
+		thisContext = new Context(width, height, contextCounter);
 	}
 	catch (std::bad_alloc &e) {
 		std::cerr << "Allocation failed! Message: " << e.what() << std::endl;
@@ -261,6 +270,31 @@ void sglBegin(sglEElementType mode) {
 
 void sglEnd(void) {
 	if (!sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
+
+	// TODO - naplnit buffer
+	std::array<float, 16> MV = currentContext->modelViewMatricesStack[0];
+	std::array<float, 16> P = currentContext->projectionMatricesStack[0];
+
+	/* TODO - vykreslit do bufferu?
+	for (unsigned int i = 0; i < currentContext->vertexBuffer.size(); ++i) {
+		vertex *v = currentContext->vertexBuffer[i];
+		int x = v->x;
+		int y = v->y;
+		int z = v->z;
+		int w = v->w;
+
+		for (unsigned int j = 0; j < currentContext->width * currentContext->height; ++j) {
+			if (y * currentContext->width + x == j) {
+				
+				for (int k = 0; k < 4; ++k) {
+					for (int l = 0; l < 4; ++l) {
+						
+					}
+				}
+			}
+		}
+	}*/
+
     
 	sglBeginEndRunning = false;
 }
