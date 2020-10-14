@@ -280,6 +280,20 @@ void sglBegin(sglEElementType mode);
  */
 void sglEnd(void);
 
+void drawPoints();
+
+void drawLines();
+
+void drawLineStrip();
+
+void drawLineLoop();
+
+void bresenhamLine(int x0, int x1, int y0, int y1);
+/**
+    Vykreslí bod na souèadnice x,y colorBufferu pøednastavenou barvou
+*/
+void drawPixel(int x, int y);
+
 /// Input of a 4-D vertex.
 /**
   Accepts a four-dimensional vector to be processed with respect to the current

@@ -294,9 +294,69 @@ void sglEnd(void) {
 			}
 		}
 	}*/
-
+    //TODO podle toho, co se má kreslit tj. podle element type
+    
+    switch (currentContext->elementType)
+    {
+    case SGL_POINTS: {
+        drawPoints();
+        break;
+    }
+    case SGL_LINES: {
+        drawLines();
+        break;
+    }
+    case SGL_LINE_STRIP: {
+        drawLineStrip();
+        break;
+    }
+    case SGL_LINE_LOOP: {
+        drawLineLoop();
+        break;
+    }
+    default:
+        break;
+    }
     
 	sglBeginEndRunning = false;
+}
+
+void drawPoints()
+{
+    for (vertex *vert : currentContext->vertexBuffer) {
+        int x = (int)round(vert->x);
+        int y = (int)round(vert->y);
+    }
+}
+
+void drawLines()
+{
+    //TODO postupnì projdeme vèechny vrcholy ve vertexBufferu a na každou další úseèku zavoláme bresenhamLine();
+
+}
+
+void drawLineStrip()
+{
+    //TODO
+}
+
+void drawLineLoop()
+{
+    //TODO
+}
+
+void bresenhamLine(int x0, int x1, int y0, int y1)
+{
+
+}
+
+void drawPixel(int x, int y) {
+    int position = x + y * currentContext->width;
+    position *= 3; 
+    currentContext->colorBuffer[position] = currentContext->drawingColor.r;
+    currentContext->colorBuffer[position + 1] = currentContext->drawingColor.g;
+    currentContext->colorBuffer[position + 2] = currentContext->drawingColor.b;
+
 }
 
 void sglVertex4f(float x, float y, float z, float w) {
