@@ -9,6 +9,7 @@
 
 #include "sgl.h"
 #include "sglhelper.h"
+#include "matrix.hpp"
 
 #include <vector>
 
@@ -22,23 +23,23 @@ struct colorPixel {
 	float b;
 };
 
-struct vertex {
+struct Vertex {
     float x;
     float y;
     float z;
     float w;
 
-    vertex() {};
-    vertex(float x, float y) {
+    Vertex() {};
+    Vertex(float x, float y) {
         this->x = x;
         this->y = y;
     }
-    vertex(float x, float y, float z) {
+    Vertex(float x, float y, float z) {
         this->x = x;
         this->y = y;
         this->z = z;
     }
-    vertex(float x, float y, float z, float w) {
+    Vertex(float x, float y, float z, float w) {
         this->x = x;
         this->y = y;
         this->z = z;
@@ -54,7 +55,7 @@ struct Context {
     float* colorBuffer;
     
     float* depthBuffer;
-    float vieportMatrix[4][4];
+	Matrix viewport;
 
     bool depthTest;
     enum sglEMatrixMode matrixMode;
@@ -63,16 +64,17 @@ struct Context {
     colorPixel drawingColor;
     float pointSize;
 
-    std::vector<std::array<float, 16>> modelViewMatricesStack;
-    std::vector<std::array<float, 16>> projectionMatricesStack;
-    std::vector<vertex*> vertexBuffer;
+    std::vector<Matrix> modelViewMatricesStack;
+    std::vector<Matrix> projectionMatricesStack;
+    std::vector<Vertex*> vertexBuffer;
 
     Context(int width, int height, int index) {
         this->width = width;
         this->height = height;
         this->index = index;
         colorBuffer = new float[width * height * 3];
-        
+		viewport.width = 4;
+		viewport.height = 1;
         depthBuffer = new float[width * height];
         //TODO malloc vertexBuffer
         depthTest = false;
@@ -89,11 +91,10 @@ struct Context {
 
 bool sglBeginEndRunning = false;
 bool sglBeginEndSceneRunning = false;
-
+int maxStackSize = 100;
 std::vector<Context*> contexts;
 int contextCounter = 0;
 Context* currentContext;
-std::array<float, 16> identity{ {1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0} };
 
 
 static inline void setErrCode(sglEErrorCode c) 
@@ -158,12 +159,12 @@ void sglFinish(void) {
     for (unsigned int i = 0; i < contexts.size(); i++) {
 		Context *curr = contexts[i];
 
-		free(curr->colorBuffer);
-		free(curr->depthBuffer);
+		delete[] curr->colorBuffer;
+		delete[] curr->depthBuffer;
 
-		for (unsigned int j = 0; j < curr->vertexBuffer.size(); ++j) {
+		/*for (unsigned int j = 0; j < curr->vertexBuffer.size(); ++j) {
 			delete curr->vertexBuffer[i];
-		}
+		}*/
 
         delete curr;
     }
@@ -309,25 +310,21 @@ void sglEnd(void) {
 
 void drawPoints()
 {
-
-    for (vertex *vert : currentContext->vertexBuffer) {
-        float x = currentContext->vieportMatrix[0][0] * vert->x + currentContext->vieportMatrix[0][2];
-        float y = currentContext->vieportMatrix[0][1] * vert->y + currentContext->vieportMatrix[0][3];
+    for (Vertex *vert : currentContext->vertexBuffer) {
+        float x = currentContext->viewport.m_data[0][0] * vert->x + currentContext->viewport.m_data[0][2];
+        float y = currentContext->viewport.m_data[0][1] * vert->y + currentContext->viewport.m_data[0][3];
 
         for (int a = x; a < x + currentContext->pointSize; a++) {
             for (int b = y; b < y + currentContext->pointSize; b++) {
                 setPixel(a, b);
             }
-        }
-    
-    }
-    
+        }    
+    }    
 }
 
 void drawLines()
 {
     //TODO postupnì projdeme vèechny vrcholy ve vertexBufferu a na každou další úseèku zavoláme bresenhamLine();
-
 }
 
 void drawLineStrip()
@@ -373,15 +370,15 @@ void setPixel(int x, int y) {
 }
 
 void sglVertex4f(float x, float y, float z, float w) {
-
+	currentContext->vertexBuffer.push_back(new Vertex(x, y, z, w));
 }
 
 void sglVertex3f(float x, float y, float z) {
-
+	currentContext->vertexBuffer.push_back(new Vertex(x, y, z));
 }
 
 void sglVertex2f(float x, float y) {
-    currentContext->vertexBuffer.push_back(new vertex(x,y));
+    currentContext->vertexBuffer.push_back(new Vertex(x,y));
 }
 
 void sglCircle(float x, float y, float z, float radius) {
@@ -421,13 +418,37 @@ void sglMatrixMode(sglEMatrixMode mode) {
 void sglPushMatrix(void) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
- 
+
+	if (currentContext->matrixMode == SGL_PROJECTION) {
+
+		if (maxStackSize == currentContext->projectionMatricesStack.size()) { _libStatus = SGL_STACK_OVERFLOW; return; }
+
+		Matrix m = *currentContext->projectionMatricesStack.end();
+		currentContext->projectionMatricesStack.push_back(m);
+	}
+	else if (currentContext->matrixMode == SGL_MODELVIEW) {
+
+		if (maxStackSize == currentContext->modelViewMatricesStack.size()) { _libStatus = SGL_STACK_OVERFLOW; return; }
+
+		Matrix m = *currentContext->modelViewMatricesStack.end();
+		currentContext->modelViewMatricesStack.push_back(m);
+	}
 }
 
 void sglPopMatrix(void) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
+	if (currentContext->matrixMode == SGL_PROJECTION) {
+		if (currentContext->projectionMatricesStack.size() == 1) { _libStatus = SGL_STACK_UNDERFLOW; return; }
+
+		currentContext->projectionMatricesStack.pop_back();
+	}
+	else if (currentContext->matrixMode == SGL_MODELVIEW) {
+		if (currentContext->modelViewMatricesStack.size() == 1) { _libStatus = SGL_STACK_UNDERFLOW; return; }
+
+		currentContext->modelViewMatricesStack.pop_back();
+	}
 }
 
 void sglLoadIdentity(void) {
@@ -435,23 +456,44 @@ void sglLoadIdentity(void) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 	
     if (currentContext->matrixMode == SGL_PROJECTION) {
-        currentContext->projectionMatricesStack.push_back(identity);
+		(*currentContext->projectionMatricesStack.end()).makeIdentity();
     }
-    if (currentContext->matrixMode == SGL_MODELVIEW) {
-        currentContext->modelViewMatricesStack.push_back(identity);
+    else if (currentContext->matrixMode == SGL_MODELVIEW) {
+		(*currentContext->modelViewMatricesStack.end()).makeIdentity();
     }
 }
 
 void sglLoadMatrix(const float *matrix) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
-
+	Matrix toLoad(4,4);
+	toLoad.initData(matrix);
+	sglPopMatrix();
+	if (_libStatus == SGL_NO_ERROR) {
+		if (currentContext->matrixMode == SGL_PROJECTION) {
+			currentContext->projectionMatricesStack.push_back(toLoad);
+		}
+		else if (currentContext->matrixMode == SGL_MODELVIEW) {
+			currentContext->modelViewMatricesStack.push_back(toLoad);
+		}
+	}
 }
 
 void sglMultMatrix(const float *matrix) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+	
+	Matrix toMult(4, 4);
+	toMult.initData(matrix);
 
+	if (currentContext->matrixMode == SGL_PROJECTION) {
+		Matrix m = (*currentContext->projectionMatricesStack.end());
+		(*currentContext->projectionMatricesStack.end()) = m * toMult;
+	}
+	else if (currentContext->matrixMode == SGL_MODELVIEW) {
+		Matrix m = (*currentContext->modelViewMatricesStack.end());
+		(*currentContext->projectionMatricesStack.end()) = m * toMult;
+	}
 }
 
 void sglTranslate(float x, float y, float z) {
@@ -501,12 +543,10 @@ void sglViewport(int x, int y, int width, int height) {
 
 	if (width < 0 || height < 0) { _libStatus = SGL_INVALID_VALUE; return; }
     
-    currentContext->vieportMatrix[0][0] = width/2.0f;
-    currentContext->vieportMatrix[0][1] = height/2.0f;
-    currentContext->vieportMatrix[0][2] = x + width / 2.0f;
-    currentContext->vieportMatrix[0][3] = (y+height)/2.0f;
-   
-    
+    currentContext->viewport.m_data[0][0] = width/2.0f;
+    currentContext->viewport.m_data[0][1] = height/2.0f;
+    currentContext->viewport.m_data[0][2] = x + width / 2.0f;
+    currentContext->viewport.m_data[0][3] = (y+height)/2.0f;  
 }
 
 //---------------------------------------------------------------------------
@@ -520,7 +560,6 @@ void sglColor3f(float r, float g, float b) {
     currentContext->drawingColor.r = r;
     currentContext->drawingColor.g = g;
     currentContext->drawingColor.b = b;
-
 }
 
 void sglAreaMode(sglEAreaMode mode) {
