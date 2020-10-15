@@ -85,6 +85,7 @@ struct Context {
         drawingColor.r = 1;
         drawingColor.g = 1;
         drawingColor.b = 1;
+		viewport.makeIdentity();
     }
 };
 
@@ -304,16 +305,6 @@ void drawPoints()
     }    
 }
 
-void drawLines()
-{
-    //TODO postupnì projdeme vèechny vrcholy ve vertexBufferu a na každou další úseèku zavoláme bresenhamLine();
-}
-
-void drawLineStrip()
-{
-    //TODO
-}
-
 void bresenhamLine(int x1, int x2, int y1, int y2)
 {
 
@@ -523,10 +514,10 @@ void sglLoadIdentity(void) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 	
     if (currentContext->matrixMode == SGL_PROJECTION) {
-		(*currentContext->projectionMatricesStack.end()).makeIdentity();
+		//(*currentContext->projectionMatricesStack.end()).makeIdentity();
     }
     else if (currentContext->matrixMode == SGL_MODELVIEW) {
-		(*currentContext->modelViewMatricesStack.end()).makeIdentity();
+		//(*currentContext->modelViewMatricesStack.end()).makeIdentity();
     }
 }
 
@@ -555,11 +546,11 @@ void sglMultMatrix(const float *matrix) {
 
 	if (currentContext->matrixMode == SGL_PROJECTION) {
 		Matrix m = (*currentContext->projectionMatricesStack.end());
-		(*currentContext->projectionMatricesStack.end()) = m * toMult;
+		//(*currentContext->projectionMatricesStack.end()) = m * toMult;
 	}
 	else if (currentContext->matrixMode == SGL_MODELVIEW) {
 		Matrix m = (*currentContext->modelViewMatricesStack.end());
-		(*currentContext->projectionMatricesStack.end()) = m * toMult;
+		//(*currentContext->projectionMatricesStack.end()) = m * toMult;
 	}
 }
 

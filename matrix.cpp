@@ -129,6 +129,9 @@ Matrix& Matrix::multiplySequential(const Matrix& a, const Matrix& b, Matrix& res
 }
 
 void Matrix::makeIdentity() {
+
+	if (m_data == NULL) allocate();
+
 	for (unsigned int i = 0; i < height; i++) {  //i = rows
 		for (unsigned int j = 0; j < width; j++) {  //j = cols
 			if (i == j) m_data[i][j] = 1;
@@ -138,6 +141,9 @@ void Matrix::makeIdentity() {
 }
 
 void Matrix::initData(const float *m) {
+
+	if (m_data == NULL) allocate();
+
 	int counter = 0;
 	for (unsigned int i = 0; i < height; i++) {  //i = rows
 		for (unsigned int j = 0; j < width; j++) {  //j = cols
