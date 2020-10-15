@@ -71,13 +71,17 @@ struct Context {
         this->width = width;
         this->height = height;
         this->index = index;
-        colorBuffer = (float*)malloc(width * height * 3 * sizeof(float));
-        depthBuffer = (float*)malloc(width * height * sizeof(float));
+        colorBuffer = new float[width * height * 3];
+        
+        depthBuffer = new float[width * height];
         //TODO malloc vertexBuffer
         depthTest = false;
         clearColor.r = 0;
         clearColor.g = 0;
         clearColor.b = 0;
+        drawingColor.r = 1;
+        drawingColor.g = 1;
+        drawingColor.b = 1;
     }
 };
 
@@ -213,6 +217,9 @@ void sglSetContext(int id) {
 			break;
         }
     }
+    if (found) {
+        //std::cout << id << std::endl;
+    }
 	if (!found) _libStatus = SGL_INVALID_VALUE;
 }
 
@@ -222,7 +229,10 @@ int sglGetContext(void) {
 }
 
 float *sglGetColorBufferPointer(void) {
-    return currentContext->colorBuffer;
+    //std::cout << currentContext->index << std::endl;
+    //std::cout << currentContext->colorBuffer[100 + 100 * currentContext->width] << " returning buffer" << std::endl;
+    printf("color buffer: %f\n ", currentContext->colorBuffer[3*(100 + 100 * currentContext->width)]);
+    return (float*)currentContext->colorBuffer;
 }
 
 //---------------------------------------------------------------------------
@@ -240,7 +250,7 @@ void sglClearColor(float r, float g, float b, float alpha) {
 
 void sglClear(unsigned what) {
 	if (!currentContext || sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
-    
+    printf("Yavolal se\n");
 	if (what == SGL_COLOR_BUFFER_BIT) {
         for (int i = 0; i < currentContext->width * currentContext->height; i += 3) {
             currentContext->colorBuffer[i] = currentContext->clearColor.r;
@@ -271,35 +281,11 @@ void sglBegin(sglEElementType mode) {
 void sglEnd(void) {
 	if (!sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	// TODO - naplnit buffer
-	std::array<float, 16> MV = currentContext->modelViewMatricesStack[0];
-	std::array<float, 16> P = currentContext->projectionMatricesStack[0];
-
-	/* TODO - vykreslit do bufferu?
-	for (unsigned int i = 0; i < currentContext->vertexBuffer.size(); ++i) {
-		vertex *v = currentContext->vertexBuffer[i];
-		int x = v->x;
-		int y = v->y;
-		int z = v->z;
-		int w = v->w;
-
-		for (unsigned int j = 0; j < currentContext->width * currentContext->height; ++j) {
-			if (y * currentContext->width + x == j) {
-				
-				for (int k = 0; k < 4; ++k) {
-					for (int l = 0; l < 4; ++l) {
-						
-					}
-				}
-			}
-		}
-	}*/
-    //TODO podle toho, co se má kreslit tj. podle element type
-    
     switch (currentContext->elementType)
     {
     case SGL_POINTS: {
         drawPoints();
+        //std::cout << "velikost bufferu" << currentContext->vertexBuffer.size() << std::endl;
         break;
     }
     case SGL_LINES: {
@@ -323,10 +309,19 @@ void sglEnd(void) {
 
 void drawPoints()
 {
+
     for (vertex *vert : currentContext->vertexBuffer) {
-        int x = (int)round(vert->x);
-        int y = (int)round(vert->y);
+        float x = currentContext->vieportMatrix[0][0] * vert->x + currentContext->vieportMatrix[0][2];
+        float y = currentContext->vieportMatrix[0][1] * vert->y + currentContext->vieportMatrix[0][3];
+
+        for (int a = x; a < x + currentContext->pointSize; a++) {
+            for (int b = y; b < y + currentContext->pointSize; b++) {
+                setPixel(a, b);
+            }
+        }
+    
     }
+    
 }
 
 void drawLines()
@@ -345,18 +340,36 @@ void drawLineLoop()
     //TODO
 }
 
-void bresenhamLine(int x0, int x1, int y0, int y1)
+void bresenhamLine(int x1, int x2, int y1, int y2)
 {
+    int c0, c1, p;
+    c0 = 2 * (y2 - y1);
+    c1 = c0 - 2 * (x2 - x1);
+    p = c0 - (x2 - x1);
+    for (int i = x1 + 1; i <= x2; i++) {
+        if (p < 0) {
+            p += c0;
+        }
+        else {
+            p += c1;
+            y1++;
+        }
+        setPixel(i, y1);
+    }
 
 }
 
-void drawPixel(int x, int y) {
+void setPixel(int x, int y) {
+    if (y >= currentContext->height || y < 0 || x < 0 || x > currentContext->width) {
+        return;
+    }
+    
     int position = x + y * currentContext->width;
-    position *= 3; 
+    position *= 3;
     currentContext->colorBuffer[position] = currentContext->drawingColor.r;
     currentContext->colorBuffer[position + 1] = currentContext->drawingColor.g;
     currentContext->colorBuffer[position + 2] = currentContext->drawingColor.b;
-
+  
 }
 
 void sglVertex4f(float x, float y, float z, float w) {
@@ -487,23 +500,13 @@ void sglViewport(int x, int y, int width, int height) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	if (width < 0 || height < 0) { _libStatus = SGL_INVALID_VALUE; return; }
-
+    
     currentContext->vieportMatrix[0][0] = width/2.0f;
-    currentContext->vieportMatrix[0][1] = 0;
-    currentContext->vieportMatrix[0][2] = 0;
-    currentContext->vieportMatrix[0][3] = x+width/2.0f;
-    currentContext->vieportMatrix[1][0] = 0;
-    currentContext->vieportMatrix[1][1] = height/2.0f;
-    currentContext->vieportMatrix[1][2] = 0;
-    currentContext->vieportMatrix[1][3] = y + height / 2.0f;
-    currentContext->vieportMatrix[2][0] = 0;
-    currentContext->vieportMatrix[2][1] = 0;
-    currentContext->vieportMatrix[2][2] = 1.0f;
-    currentContext->vieportMatrix[2][3] = 0;
-    currentContext->vieportMatrix[3][0] = 0;
-    currentContext->vieportMatrix[3][1] = 0;
-    currentContext->vieportMatrix[3][2] = 0;
-    currentContext->vieportMatrix[3][3] = 1;
+    currentContext->vieportMatrix[0][1] = height/2.0f;
+    currentContext->vieportMatrix[0][2] = x + width / 2.0f;
+    currentContext->vieportMatrix[0][3] = (y+height)/2.0f;
+   
+    
 }
 
 //---------------------------------------------------------------------------

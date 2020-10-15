@@ -292,7 +292,7 @@ void bresenhamLine(int x0, int x1, int y0, int y1);
 /**
     Vykreslí bod na souèadnice x,y colorBufferu pøednastavenou barvou
 */
-void drawPixel(int x, int y);
+void setPixel(int x, int y);
 
 /// Input of a 4-D vertex.
 /**
