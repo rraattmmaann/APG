@@ -11,6 +11,7 @@
 #include "sglhelper.h"
 #include "matrix.hpp"
 
+#include <math.h>
 #include <vector>
 
 /// Current error code.
@@ -162,9 +163,9 @@ void sglFinish(void) {
 		delete[] curr->colorBuffer;
 		delete[] curr->depthBuffer;
 
-		/*for (unsigned int j = 0; j < curr->vertexBuffer.size(); ++j) {
-			delete curr->vertexBuffer[i];
-		}*/
+		for (unsigned int j = 0; j < curr->vertexBuffer.size(); ++j) {
+			//delete curr->vertexBuffer[i];
+		}
 
         delete curr;
     }
@@ -230,9 +231,6 @@ int sglGetContext(void) {
 }
 
 float *sglGetColorBufferPointer(void) {
-    //std::cout << currentContext->index << std::endl;
-    //std::cout << currentContext->colorBuffer[100 + 100 * currentContext->width] << " returning buffer" << std::endl;
-    printf("color buffer: %f\n ", currentContext->colorBuffer[3*(100 + 100 * currentContext->width)]);
     return (float*)currentContext->colorBuffer;
 }
 
@@ -251,7 +249,7 @@ void sglClearColor(float r, float g, float b, float alpha) {
 
 void sglClear(unsigned what) {
 	if (!currentContext || sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
-    printf("Yavolal se\n");
+    //printf("Yavolal se\n");
 	if (what == SGL_COLOR_BUFFER_BIT) {
         for (int i = 0; i < currentContext->width * currentContext->height; i += 3) {
             currentContext->colorBuffer[i] = currentContext->clearColor.r;
@@ -261,7 +259,7 @@ void sglClear(unsigned what) {
     }
     else if (what == SGL_DEPTH_BUFFER_BIT){
         for (int i = 0; i < currentContext->width * currentContext->height; i += 1) {
-            currentContext->depthBuffer[i] = INFINITY;
+            currentContext->depthBuffer[i] = 1000000;
         }
 	}
 	else {
@@ -278,6 +276,134 @@ void sglBegin(sglEElementType mode) {
 	sglBeginEndRunning = true;
     currentContext->elementType = mode;
 }
+
+void setPixel(int x, int y) {
+    if (y >= currentContext->height || y < 0 || x < 0 || x > currentContext->width) {
+        return;
+    }
+
+    int position = x + y * currentContext->width;
+    position *= 3;
+    currentContext->colorBuffer[position] = currentContext->drawingColor.r;
+    currentContext->colorBuffer[position + 1] = currentContext->drawingColor.g;
+    currentContext->colorBuffer[position + 2] = currentContext->drawingColor.b;
+
+}
+
+void drawPoints()
+{
+    for (Vertex *vert : currentContext->vertexBuffer) {
+        float x = currentContext->viewport.m_data[0][0] * vert->x + currentContext->viewport.m_data[0][2];
+        float y = currentContext->viewport.m_data[0][1] * vert->y + currentContext->viewport.m_data[0][3];
+
+        for (int a = 0; a < currentContext->pointSize; a++) {
+            for (int b = 0; b < currentContext->pointSize; b++) {
+                setPixel(x + a, round(y) + b);
+            }
+        }    
+    }    
+}
+
+void drawLines()
+{
+    //TODO postupnì projdeme vèechny vrcholy ve vertexBufferu a na každou další úseèku zavoláme bresenhamLine();
+}
+
+void drawLineStrip()
+{
+    //TODO
+}
+
+void bresenhamLine(int x1, int x2, int y1, int y2)
+{
+
+    int c0, c1, p;
+    c0 = 2 * (y2 - y1);
+    c1 = c0 - 2 * (x2 - x1);
+    p = c0 - (x2 - x1);
+    setPixel(x1, y1);
+
+    for (int i = x1 + 1; i < x2; i++) {
+        if (p < 0) { 
+            p += c0;
+        }
+        else {
+            p += c1;
+            y1++;
+        }
+        setPixel(i, y1);
+    }
+    
+
+    /*
+    if (x1 > x2) {
+        int tempX1 = x1;
+        int tempY1 = y1;
+
+        x1 = x2;
+        y1 = y2;
+
+        x2 = tempX1;
+        y2 = tempY1;
+    }
+
+    int c0, c1, p;
+    c0 = 2 * (y2 - y1);
+    c1 = c0 - 2 * (x2 - x1);
+    p = c0 - (x2 - x1);
+
+    //ridici x - vodorovne
+    if (abs(x1 - x2) < abs(y1 - y2)) {
+
+        for (int i = x1 + 1; i <= x2; i++) {
+            if (p < 0) {
+                p += c0;
+            }
+            else {
+                p += c1;
+                y1++;
+            }
+            setPixel(i, y1);
+        }
+    }
+    //ridici y - svisle
+    else {
+        for (int i = y1 + 1; i <= y2; i++) {
+            if (p < 0) {
+                p += c0;
+            }
+            else {
+                p += c1;
+                y1++;
+            }
+            setPixel(x1, i);
+        }
+    }
+    */
+}
+
+void drawLines()
+{
+    //TODO postupnì projdeme vèechny vrcholy ve vertexBufferu a na každou další úseèku zavoláme bresenhamLine();
+    for (unsigned int i = 0; i < currentContext->vertexBuffer.size(); i += 2) {
+        int x1 = currentContext->vertexBuffer.at(i)->x;
+        int y1 = currentContext->vertexBuffer.at(i)->y;
+        int x2 = currentContext->vertexBuffer.at(i + 1)->x;
+        int y2 = currentContext->vertexBuffer.at(i + 1)->y;
+        bresenhamLine(x1, x2, y1, y2);
+    }
+}
+
+void drawLineStrip()
+{
+    //TODO
+}
+
+void drawLineLoop()
+{
+    //TODO
+}
+
 
 void sglEnd(void) {
 	if (!sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
@@ -306,68 +432,9 @@ void sglEnd(void) {
     }
     
 	sglBeginEndRunning = false;
+    currentContext->vertexBuffer.clear();
 }
 
-void drawPoints()
-{
-    for (Vertex *vert : currentContext->vertexBuffer) {
-        float x = currentContext->viewport.m_data[0][0] * vert->x + currentContext->viewport.m_data[0][2];
-        float y = currentContext->viewport.m_data[0][1] * vert->y + currentContext->viewport.m_data[0][3];
-
-        for (int a = x; a < x + currentContext->pointSize; a++) {
-            for (int b = y; b < y + currentContext->pointSize; b++) {
-                setPixel(a, b);
-            }
-        }    
-    }    
-}
-
-void drawLines()
-{
-    //TODO postupnì projdeme vèechny vrcholy ve vertexBufferu a na každou další úseèku zavoláme bresenhamLine();
-}
-
-void drawLineStrip()
-{
-    //TODO
-}
-
-void drawLineLoop()
-{
-    //TODO
-}
-
-void bresenhamLine(int x1, int x2, int y1, int y2)
-{
-    int c0, c1, p;
-    c0 = 2 * (y2 - y1);
-    c1 = c0 - 2 * (x2 - x1);
-    p = c0 - (x2 - x1);
-    for (int i = x1 + 1; i <= x2; i++) {
-        if (p < 0) {
-            p += c0;
-        }
-        else {
-            p += c1;
-            y1++;
-        }
-        setPixel(i, y1);
-    }
-
-}
-
-void setPixel(int x, int y) {
-    if (y >= currentContext->height || y < 0 || x < 0 || x > currentContext->width) {
-        return;
-    }
-    
-    int position = x + y * currentContext->width;
-    position *= 3;
-    currentContext->colorBuffer[position] = currentContext->drawingColor.r;
-    currentContext->colorBuffer[position + 1] = currentContext->drawingColor.g;
-    currentContext->colorBuffer[position + 2] = currentContext->drawingColor.b;
-  
-}
 
 void sglVertex4f(float x, float y, float z, float w) {
 	currentContext->vertexBuffer.push_back(new Vertex(x, y, z, w));
