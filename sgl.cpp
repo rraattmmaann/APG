@@ -51,6 +51,7 @@ struct Context {
 
 	float* depthBuffer;
 	Matrix viewport;
+	float viewportScale;
 
 	bool depthTest;
 	enum sglEMatrixMode matrixMode;
@@ -204,7 +205,7 @@ void sglDestroyContext(int id) {
 		int cont = contexts[i]->index;
 		if (cont == id) {
 			delete contexts[i];
-			contexts.erase(contexts.begin() + id);
+			//contexts.erase(contexts.begin() + id);
 			--contextCounter;
 			found = true;
 			break;
@@ -288,6 +289,60 @@ void setPixel(int x, int y) {
 	currentContext->colorBuffer[position + 1] = currentContext->drawingColor.g;
 	currentContext->colorBuffer[position + 2] = currentContext->drawingColor.b;
 
+}
+
+void setSymetricalPixels(float x, float y, float xs, float ys)
+{
+	setPixel(xs + x, ys + y);
+	setPixel(xs + y, ys + x);
+	setPixel(xs + y, ys - x);
+	setPixel(xs + x, ys - y);
+	setPixel(xs - x, ys - y);
+	setPixel(xs - y, ys - x);
+	setPixel(xs - y, ys + x);
+	setPixel(xs - x, ys + y);
+}
+
+void bresenhamCircle(float xs, float ys, float zs, float r) {
+
+	if (currentContext->areaMode == SGL_POINT) {
+		sglBegin(SGL_POINTS);
+		sglVertex3f(xs, ys, zs);
+		sglEnd();
+	}
+
+	Matrix matrix = currentContext->projectionMatricesStack.back() * currentContext->modelViewMatricesStack.back();
+
+	Matrix stred(4, 1);
+	float b[] = { xs, ys, zs, 1 };
+	stred.initData(b);
+	Matrix res = (matrix * stred) * (1 / stred.m_data[3][0]);
+	float stx = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
+	float sty = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
+
+	Matrix MV = currentContext->modelViewMatricesStack.back();
+	Matrix P = currentContext->projectionMatricesStack.back();
+
+	float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
+	float Pscale = P.m_data[0][0] * P.m_data[1][1] - P.m_data[1][0] * P.m_data[0][1];
+	r *= sqrt(MVscale * Pscale * currentContext->viewportScale);
+
+	float x, y, p;
+	x = 0;
+	y = r;
+	p = 3 - 2 * r;
+	while (x < y) {
+		setSymetricalPixels(x, y, stx, sty);
+		if (p < 0) {
+			p = p + 4 * x + 6;
+
+		}
+		else {
+			p = p + 4 * (x - y) + 10;
+			y = y - 1;
+		}
+		x = x + 1;
+	}
 }
 
 void drawPoints()
@@ -472,89 +527,6 @@ void approximationArc(float x, float y, float z, float radius, float from, float
 	
 }
 
-void renderSymetrical(Matrix &m, Matrix &bod) {
-	Matrix res = (m * bod) * (1 / bod.m_data[3][0]);
-	float stx = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
-	float sty = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
-	setPixel(stx, sty);
-}
-
-void setSymetricalPixels(float x, float y, float xs, float ys)
-{
-	auto projSize = currentContext->projectionMatricesStack.size() - 1;
-	auto mvSize = currentContext->modelViewMatricesStack.size() - 1;
-	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
-
-	Matrix bod(4, 1);
-	float b[] = { xs + x, ys + y, 0, 1 };
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs + y;
-	b[1] = ys + x;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs + y;
-	b[1] = ys - x;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs + x;
-	b[1] = ys - y;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs - x;
-	b[1] = ys - y;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs - y;
-	b[1] = ys - x;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs - y;
-	b[1] = ys + x;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs - x;
-	b[1] = ys + y;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-}
-
-void bresenhamCircle(float xs, float ys, float zs, float r) {
-
-	if (currentContext->areaMode == SGL_POINT) {
-		sglBegin(SGL_POINTS);
-		sglVertex3f(xs, ys, zs);
-		sglEnd();
-	}
-
-	float x, y, p;
-	x = 0;
-	y = r;
-	p = 3 - 2 * r;
-	
-	while (x < y) {
-		setSymetricalPixels(x, y, xs, ys);
-		if (p < 0) {
-			p = p + 4 * x + 6;
-			
-		}
-		else {
-			p = p + 4 * (x - y) + 10;
-			y = y - 1;
-		}
-		x = x + 1;
-	}
-	if (x == y)(setSymetricalPixels(x, y, xs, ys));
-}
-
-
 
 void drawLines()
 {
@@ -621,7 +593,7 @@ void drawLineLoop()
 	auto projSize = currentContext->projectionMatricesStack.size() - 1;
 	auto mvSize = currentContext->modelViewMatricesStack.size() - 1;
 	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
-
+	
 	Vertex vert = currentContext->vertexBuffer[0];
 	Matrix bod(4, 1);
 	float b[] = { vert.x, vert.y, vert.z, vert.w };
@@ -777,12 +749,14 @@ void sglPopMatrix(void) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	if (currentContext->matrixMode == SGL_PROJECTION) {
-		if (currentContext->projectionMatricesStack.size() <= 1 && !popFlag) { _libStatus = SGL_STACK_UNDERFLOW; return; }
+		if (currentContext->projectionMatricesStack.size() <= 1 && !popFlag) { 
+			_libStatus = SGL_STACK_UNDERFLOW; return; }
 
 		currentContext->projectionMatricesStack.pop_back();
 	}
 	else if (currentContext->matrixMode == SGL_MODELVIEW) {
-		if (currentContext->modelViewMatricesStack.size() <= 1 && !popFlag) { _libStatus = SGL_STACK_UNDERFLOW; return; }
+		if (currentContext->modelViewMatricesStack.size() <= 1 && !popFlag) { 
+			_libStatus = SGL_STACK_UNDERFLOW; return; }
 
 		currentContext->modelViewMatricesStack.pop_back();
 	}
@@ -796,7 +770,7 @@ void sglLoadIdentity(void) {
 		bool emptyStack = currentContext->projectionMatricesStack.size() == 0;
 		Matrix m;
 		if (!emptyStack) {
-			m = currentContext->projectionMatricesStack[currentContext->projectionMatricesStack.size() - 1];
+			m = currentContext->projectionMatricesStack.back();
 		}
 		m.makeIdentity();
 		Matrix newM = m;
@@ -813,7 +787,7 @@ void sglLoadIdentity(void) {
 		bool emptyStack = currentContext->modelViewMatricesStack.size() == 0;
 		Matrix m;
 		if (!emptyStack)
-			m = currentContext->modelViewMatricesStack[currentContext->modelViewMatricesStack.size() - 1];
+			m = currentContext->modelViewMatricesStack.back();
 		m.makeIdentity();
 		Matrix newM = m;
 		if (!emptyStack) {
@@ -856,7 +830,9 @@ void sglMultMatrix(const float *matrix) {
 	if (currentContext->matrixMode == SGL_PROJECTION) {
 		Matrix m = currentContext->projectionMatricesStack[currentContext->projectionMatricesStack.size() - 1];
 		Matrix newM = m * toMult;
+		popFlag = true;
 		sglPopMatrix();
+		popFlag = false;
 		/*std::cout << "sglMult: projection \n";
 		newM.print();*/
 		currentContext->projectionMatricesStack.push_back(newM);
@@ -864,7 +840,9 @@ void sglMultMatrix(const float *matrix) {
 	else if (currentContext->matrixMode == SGL_MODELVIEW) {
 		Matrix m = currentContext->modelViewMatricesStack[currentContext->modelViewMatricesStack.size() - 1];
 		Matrix newM = m * toMult;
+		popFlag = true;
 		sglPopMatrix();
+		popFlag = false;
 		/*std::cout << "sglMult: modelview \n";
 		newM.print();*/
 		currentContext->modelViewMatricesStack.push_back(newM);
@@ -989,6 +967,8 @@ void sglViewport(int x, int y, int width, int height) {
 	currentContext->viewport.m_data[1][0] = height / 2.0f;
 	currentContext->viewport.m_data[2][0] = x + width / 2.0f;
 	currentContext->viewport.m_data[3][0] = (y + height) / 2.0f;
+
+	currentContext->viewportScale = (width*height) / 4;
 }
 
 //---------------------------------------------------------------------------
