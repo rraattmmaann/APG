@@ -297,7 +297,14 @@ void setPixel(int x, int y) {
 
 void setSymetricalPixels(float x, float y, float xs, float ys)
 {
-      
+    setPixel(xs + x, ys + y);
+    setPixel(xs + y, ys + x);
+    setPixel(xs + y, ys - x);
+    setPixel(xs + x, ys - y);
+    setPixel(xs - x, ys - y);
+    setPixel(xs - y, ys - x);
+    setPixel(xs - y, ys + x);
+    setPixel(xs - x, ys + y);
 
 
 }
@@ -352,11 +359,6 @@ void bresenhamLine(int x1, int x2, int y1, int y2)
         y2 = tempY;
 
     }
-    /*
-        c0 = 2 * (y2 - y1);
-        c1 = c0 - 2 * (x2 - x1);
-        p = c0 - (x2 - x1);
-   */
     
     if (abs(x2 - x1) > abs(y2 - y1)) { // vodorovná
         
@@ -445,13 +447,15 @@ void drawLines()
 
 void drawLineStrip()
 {
-    for (unsigned int i = 0; i < currentContext->vertexBuffer.size(); i++) {
+    
+    for (unsigned int i = 0; i < currentContext->vertexBuffer.size()-1; i++) {
         int x1 = currentContext->vertexBuffer.at(i)->x;
         int y1 = currentContext->vertexBuffer.at(i)->y;
         int x2 = currentContext->vertexBuffer.at(i + 1)->x;
         int y2 = currentContext->vertexBuffer.at(i + 1)->y;
         bresenhamLine(x1, x2, y1, y2);
     }
+    
 }
 
 void drawLineLoop()
@@ -462,7 +466,7 @@ void drawLineLoop()
 
     int length = 0;
 
-    for (unsigned int i = 0; i < currentContext->vertexBuffer.size(); i++) {
+    for (unsigned int i = 0; i < currentContext->vertexBuffer.size()-1; i++) {
         int x1 = currentContext->vertexBuffer.at(i)->x;
         int y1 = currentContext->vertexBuffer.at(i)->y;
         int x2 = currentContext->vertexBuffer.at(i + 1)->x;
