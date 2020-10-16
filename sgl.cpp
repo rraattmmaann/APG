@@ -291,9 +291,32 @@ void setPixel(int x, int y) {
 
 }
 
+void setSymetricalPixels(float x, float y, float xs, float ys)
+{
+      
+
+
+}
+
+void bresenhamCircle(float xs, float ys, float zs, float r) {
+    float x, y, p;
+    x = 0;
+    y = r;
+    p = 3 - 2 * r;
+    while (x < y) {
+        setSymetricalPixels(x, y, xs, ys);
+        if (p < 0) {
+            p = p + 4 * (x - y) + 10;
+            y = y - 1;
+        }
+        x = x + 1;
+    }
+    if (x == y)(setSymetricalPixels(x, y, xs, ys));
+}
+
 void drawPoints()
 {
-    for (Vertex *vert : currentContext->vertexBuffer) {
+    for (Vertex* vert : currentContext->vertexBuffer) {
         float x = currentContext->viewport.m_data[0][0] * vert->x + currentContext->viewport.m_data[0][2];
         float y = currentContext->viewport.m_data[0][1] * vert->y + currentContext->viewport.m_data[0][3];
 
@@ -301,76 +324,107 @@ void drawPoints()
             for (int b = 0; b < currentContext->pointSize; b++) {
                 setPixel(x + a, round(y) + b);
             }
-        }    
-    }    
+        }
+    }
 }
 
 void bresenhamLine(int x1, int x2, int y1, int y2)
 {
 
     int c0, c1, p;
-    c0 = 2 * (y2 - y1);
-    c1 = c0 - 2 * (x2 - x1);
-    p = c0 - (x2 - x1);
-    setPixel(x1, y1);
-
-    for (int i = x1 + 1; i < x2; i++) {
-        if (p < 0) { 
-            p += c0;
-        }
-        else {
-            p += c1;
-            y1++;
-        }
-        setPixel(i, y1);
-    }
+    int x1backup = x1;
+    int x2backup = x2;
+    int y1backup = y1;
+    int y2backup = y2;
     
-
-    /*
-    if (x1 > x2) {
-        int tempX1 = x1;
-        int tempY1 = y1;
+    if (x2 - x1 <= 0 && y2 - y1 <= 0 ) {
+        int tempX = x1;
+        int tempY = y1;
 
         x1 = x2;
         y1 = y2;
 
-        x2 = tempX1;
-        y2 = tempY1;
+        x2 = tempX;
+        y2 = tempY;
+
     }
+    /*
+        c0 = 2 * (y2 - y1);
+        c1 = c0 - 2 * (x2 - x1);
+        p = c0 - (x2 - x1);
+   */
+    
+    if (abs(x2 - x1) > abs(y2 - y1)) { // vodorovná
+        
+        if (y2 - y1 > 0 && x2 - x1 < 0) {
+            int tempX = x1;
+            int tempY = y1;
 
-    int c0, c1, p;
-    c0 = 2 * (y2 - y1);
-    c1 = c0 - 2 * (x2 - x1);
-    p = c0 - (x2 - x1);
+            x1 = x2;
+            y1 = y2;
 
-    //ridici x - vodorovne
-    if (abs(x1 - x2) < abs(y1 - y2)) {
+            x2 = tempX;
+            y2 = tempY;
+        }
+        
 
-        for (int i = x1 + 1; i <= x2; i++) {
+        setPixel(x1, y1);
+        int yDirection = 1;
+        
+        if (y2 - y1 <= 0) {
+            yDirection = -yDirection;
+        }
+
+        c0 = 2 * abs(y1 - y2);
+        c1 = c0 - 2 * abs(x1 - x2);
+        p = c0 - abs(x1 - x2);
+        
+        for (int i = x1 + 1; i < x2; i++) {
             if (p < 0) {
                 p += c0;
             }
             else {
                 p += c1;
-                y1++;
+                y1 += yDirection;
             }
             setPixel(i, y1);
         }
     }
-    //ridici y - svisle
-    else {
-        for (int i = y1 + 1; i <= y2; i++) {
+    else {//svislá
+        if (y2 - y1 < 0 && x2 - x1 > 0) {
+            int tempX = x1;
+            int tempY = y1;
+
+            x1 = x2;
+            y1 = y2;
+
+            x2 = tempX;
+            y2 = tempY;
+        }
+        setPixel(x1, y1);
+        int xDirection = 1;
+
+        if (x2 - x1 <= 0) {
+            xDirection = -xDirection;
+        }
+
+        c0 = 2 * abs(x1 - x2);
+        c1 = c0 - 2 * abs(y1 - y2);
+        p = c0 - abs(y1 - y2);
+        
+
+        for (int i = y1 + 1; i < y2; i++) {
             if (p < 0) {
                 p += c0;
             }
             else {
                 p += c1;
-                y1++;
+                x1 += xDirection;
             }
             setPixel(x1, i);
         }
     }
-    */
+    
 }
 
 void drawLines()
@@ -387,12 +441,35 @@ void drawLines()
 
 void drawLineStrip()
 {
-    //TODO
+    for (unsigned int i = 0; i < currentContext->vertexBuffer.size(); i++) {
+        int x1 = currentContext->vertexBuffer.at(i)->x;
+        int y1 = currentContext->vertexBuffer.at(i)->y;
+        int x2 = currentContext->vertexBuffer.at(i + 1)->x;
+        int y2 = currentContext->vertexBuffer.at(i + 1)->y;
+        bresenhamLine(x1, x2, y1, y2);
+    }
 }
 
 void drawLineLoop()
 {
-    //TODO
+    int startx = currentContext->vertexBuffer.at(0)->x;
+    int starty = currentContext->vertexBuffer.at(0)->y;
+    
+
+    int length = 0;
+
+    for (unsigned int i = 0; i < currentContext->vertexBuffer.size(); i++) {
+        int x1 = currentContext->vertexBuffer.at(i)->x;
+        int y1 = currentContext->vertexBuffer.at(i)->y;
+        int x2 = currentContext->vertexBuffer.at(i + 1)->x;
+        int y2 = currentContext->vertexBuffer.at(i + 1)->y;
+        bresenhamLine(x1, x2, y1, y2);
+        length++;
+    }
+
+    int endx = currentContext->vertexBuffer.at(length)->x;
+    int endy = currentContext->vertexBuffer.at(length)->y;
+    bresenhamLine(startx, endx, starty, endy);
 }
 
 
@@ -444,6 +521,8 @@ void sglCircle(float x, float y, float z, float radius) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	if (radius < 0) { _libStatus = SGL_INVALID_VALUE; return; }
+
+    bresenhamCircle(x, y, z, radius);
 
 }
 
