@@ -6,6 +6,7 @@
 // Author: Jaroslav Krivanek, Jiri Bittner, CTU Prague
 // Edited: Jakub Hendrich, Daniel Meister, CTU Prague
 //---------------------------------------------------------------------------
+#define _USE_MATH_DEFINES
 
 #include "sgl.h"
 #include "sglhelper.h"
@@ -13,6 +14,8 @@
 
 #include <math.h>
 #include <vector>
+
+
 
 /// Current error code.
 static sglEErrorCode _libStatus = SGL_NO_ERROR;
@@ -61,6 +64,7 @@ struct Context {
     bool depthTest;
     enum sglEMatrixMode matrixMode;
     enum sglEElementType elementType;
+    enum sglEAreaMode areaMode;
 
     colorPixel drawingColor;
     float pointSize;
@@ -295,6 +299,36 @@ void setPixel(int x, int y) {
 
 }
 
+
+void approximationEllipse(float x, float y, float z, float a, float b) {
+   
+    if (currentContext->areaMode == SGL_POINT) {
+        sglBegin(SGL_POINTS);
+        sglVertex3f(x, y, z);
+        sglEnd;
+    }
+
+    float x1;
+    float y1;
+    float alpha = 2 * M_PI / 40;
+    float angle = 0;
+
+    sglVertex3f(x + a*cos(angle), y + b*sin(angle), z);
+
+    sglBegin(SGL_LINE_LOOP);
+    for (int i = 1; i < 40; i++) {
+        x1 = a * cos(i * angle);
+        y1 = b * sin(i * angle);
+        sglVertex3f(x + x1, y + y1, z);
+    }
+    sglEnd();
+}
+
+void approximationArc(float x, float y, float z, float a, float b) {
+    
+
+}
+
 void setSymetricalPixels(float x, float y, float xs, float ys)
 {
     setPixel(xs + x, ys + y);
@@ -310,6 +344,13 @@ void setSymetricalPixels(float x, float y, float xs, float ys)
 }
 
 void bresenhamCircle(float xs, float ys, float zs, float r) {
+    
+    if (currentContext->areaMode == SGL_POINT) {
+        sglBegin(SGL_POINTS);
+        sglVertex3f(xs, ys, zs);
+        sglEnd;
+    }
+
     float x, y, p;
     x = 0;
     y = r;
@@ -539,6 +580,8 @@ void sglEllipse(float x, float y, float z, float a, float b) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	if (a < 0 || b < 0) { _libStatus = SGL_INVALID_VALUE; return; }
+
+    approximationEllipse(x, y, z, a, b);
 }
 
 void sglArc(float x, float y, float z, float radius, float from, float to) {
@@ -546,6 +589,8 @@ void sglArc(float x, float y, float z, float radius, float from, float to) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	if (radius < 0) { _libStatus = SGL_INVALID_VALUE; return; }
+
+
 }
 
 //---------------------------------------------------------------------------
@@ -812,7 +857,7 @@ void sglAreaMode(sglEAreaMode mode) {
 
 	if (mode > 2 || mode < 0) { _libStatus = SGL_INVALID_ENUM; return; }
 
-
+    currentContext->areaMode = mode;
 }
 
 void sglPointSize(float size) {
