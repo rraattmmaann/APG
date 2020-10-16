@@ -92,6 +92,19 @@ Matrix Matrix::operator*(const Matrix& rhs){
 	return result;
 }
 
+Matrix Matrix::operator*(const float& rhs) {
+
+	Matrix result(height, width);
+
+	for (unsigned int i = 0; i < height; i++) {
+		for (unsigned int j = 0; j < width; j++) {
+			result.m_data[i][j] = m_data[i][j] *= rhs;
+		}
+	}
+
+	return result;
+}
+
 // Transpose this matrix and return transposed matrix
 Matrix Matrix::transpose() const {
 
@@ -147,8 +160,18 @@ void Matrix::initData(const float *m) {
 	int counter = 0;
 	for (unsigned int i = 0; i < height; i++) {  //i = rows
 		for (unsigned int j = 0; j < width; j++) {  //j = cols
-			m_data[j][i] = m[counter];
+			m_data[i][j] = m[counter];
 			++counter;
 		}
+	}
+}
+
+void Matrix::print() {
+	for (unsigned int i = 0; i < height; ++i) {
+		std::cout << "[";
+		for (unsigned int j = 0; j < width; ++j) {
+			std::cout << " " << m_data[i][j];
+		}
+		std::cout << " ]\n";
 	}
 }

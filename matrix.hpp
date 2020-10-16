@@ -9,14 +9,16 @@ public:
 	Matrix(const Matrix& rhs);	
 	~Matrix();
 
-	//friend std::ostream& operator<<(std::ostream& out, const matrix& m);
+	//friend std::ostream& operator<<(std::ostream& out, const Matrix& m);
 	Matrix operator*(const Matrix& rhs);
+	Matrix operator*(const float& rhs);
 	Matrix& operator=(const Matrix& rhs);	
 
 	Matrix transpose() const;
 	Matrix& multiplySequential(const Matrix& a, const Matrix& b, Matrix& result);
 	void makeIdentity();
 	void initData(const float *m);
+	void print();
 
 	void swap(Matrix& rhs);
 	void allocate();
@@ -26,8 +28,8 @@ public:
 	float** m_data;
 };
 
-/*
-std::ostream& operator<<(std::ostream& out, const matrix& m) {
+
+/*std::ostream& operator<<(std::ostream& out, const Matrix& m) {
 
     for (unsigned int i = 0; i < m.height; ++i) {
     	out << "[";
