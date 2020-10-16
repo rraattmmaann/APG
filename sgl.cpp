@@ -290,116 +290,6 @@ void setPixel(int x, int y) {
 
 }
 
-
-void approximationEllipse(float x, float y, float z, float a, float b) {
-
-	if (currentContext->areaMode == SGL_POINT) {
-		sglBegin(SGL_POINTS);
-		sglVertex3f(x, y, z);
-		sglEnd;
-	}
-
-	float x1;
-	float y1;
-	float alpha = 2 * M_PI / 40;
-	float angle = 0;
-
-	sglVertex3f(x + a * cos(angle), y + b * sin(angle), z);
-
-	sglBegin(SGL_LINE_LOOP);
-	for (int i = 1; i < 40; i++) {
-		x1 = a * cos(i * angle);
-		y1 = b * sin(i * angle);
-		sglVertex3f(x + x1, y + y1, z);
-	}
-	sglEnd();
-}
-
-void approximationArc(float x, float y, float z, float radius, float from, float to) {
-
-	float x1;
-	float y1;
-
-
-}
-
-void renderSymetrical(Matrix &m, Matrix &bod) {
-	Matrix res = (m * bod) * (1 / bod.m_data[3][0]);
-	float stx = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
-	float sty = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
-	setPixel(stx, sty);
-}
-
-void setSymetricalPixels(float x, float y, float xs, float ys)
-{
-	auto projSize = currentContext->projectionMatricesStack.size() - 1;
-	auto mvSize = currentContext->modelViewMatricesStack.size() - 1;
-	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
-
-	Matrix bod(4, 1);
-	float b[] = { xs + x, ys + y, 0, 1 };
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs + y;
-	b[1] = ys + x;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs + y;
-	b[1] = ys - x;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs + x;
-	b[1] = ys - y;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs - x;
-	b[1] = ys - y;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs - y;
-	b[1] = ys - x;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs - y;
-	b[1] = ys + x;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-
-	b[0] = xs - x;
-	b[1] = ys + y;
-	bod.initData(b);
-	renderSymetrical(matrix, bod);
-}
-
-void bresenhamCircle(float xs, float ys, float zs, float r) {
-
-	if (currentContext->areaMode == SGL_POINT) {
-		sglBegin(SGL_POINTS);
-		sglVertex3f(xs, ys, zs);
-		sglEnd();
-	}
-
-	float x, y, p;
-	x = 0;
-	y = r;
-	p = 3 - 2 * r;
-	while (x < y) {
-		setSymetricalPixels(x, y, xs, ys);
-		if (p < 0) {
-			p = p + 4 * (x - y) + 10;
-			y = y - 1;
-		}
-		x = x + 1;
-	}
-	if (x == y)(setSymetricalPixels(x, y, xs, ys));
-}
-
 void drawPoints()
 {
 	auto projSize = currentContext->projectionMatricesStack.size() - 1;
@@ -517,6 +407,155 @@ void bresenhamLine(int x1, int x2, int y1, int y2)
 
 }
 
+void approximationEllipse(float x, float y, float z, float a, float b) {
+
+	if (currentContext->areaMode == SGL_POINT) {
+		sglBegin(SGL_POINTS);
+		sglVertex3f(x, y, z);
+		sglEnd;
+	}
+
+	float x1 = a;
+	float y1 = 0;
+	float x2;
+	float y2;
+	float alpha = 2 * M_PI / 40;
+	float angle = 0;
+
+	sglVertex3f(x + a * cos(angle), y + b * sin(angle), z);
+
+	float CA = cos(alpha);
+	float SA = sin(alpha);
+
+	sglBegin(SGL_LINE_LOOP); //comment to use bresenham
+	for (int i = 1; i < 40; i++) {
+		//x2 = CA*x1 * a - SA*y1 * a;
+		//y2 = SA*x1 * b  + CA*y1 * b;
+		x2 = a * cos(i * alpha);
+		y2 = b * sin(i * alpha);
+		sglVertex3f(x + x2, y + y2, z);
+		//bresenhamLine(x + x1, x + x2, y + y1, y + y2);
+
+		//x1 = x2;
+		//y1 = y2;
+
+	}
+	sglEnd();
+}
+
+void approximationArc(float x, float y, float z, float radius, float from, float to) {
+
+	float x1 = radius;
+	float y1 = 0;
+	float x2;
+	float y2;
+	float alpha = 40.0 * abs(to - from) / (2 * M_PI);
+
+	float CA = cos(alpha);
+	float SA = sin(alpha);
+
+	sglBegin(SGL_LINE_LOOP);
+
+	for (unsigned int i = 1; i < 40; i++) {
+		//x2 = CA * x1 - SA * y1;
+		//y2 = SA * x1 + CA * y1;
+		//bresenhamLine(x + x1, x + x2, y + y1, y + y2);
+		//x1 = x2;
+		//y1 = y2;
+
+		x2 = radius * cos(from + i * alpha);
+		y2 = radius * sin(from + i * alpha);
+		sglVertex3f(x + x2, y + y2, z);
+		//from -= alpha
+	}
+	sglEnd();
+	
+}
+
+void renderSymetrical(Matrix &m, Matrix &bod) {
+	Matrix res = (m * bod) * (1 / bod.m_data[3][0]);
+	float stx = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
+	float sty = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
+	setPixel(stx, sty);
+}
+
+void setSymetricalPixels(float x, float y, float xs, float ys)
+{
+	auto projSize = currentContext->projectionMatricesStack.size() - 1;
+	auto mvSize = currentContext->modelViewMatricesStack.size() - 1;
+	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
+
+	Matrix bod(4, 1);
+	float b[] = { xs + x, ys + y, 0, 1 };
+	bod.initData(b);
+	renderSymetrical(matrix, bod);
+
+	b[0] = xs + y;
+	b[1] = ys + x;
+	bod.initData(b);
+	renderSymetrical(matrix, bod);
+
+	b[0] = xs + y;
+	b[1] = ys - x;
+	bod.initData(b);
+	renderSymetrical(matrix, bod);
+
+	b[0] = xs + x;
+	b[1] = ys - y;
+	bod.initData(b);
+	renderSymetrical(matrix, bod);
+
+	b[0] = xs - x;
+	b[1] = ys - y;
+	bod.initData(b);
+	renderSymetrical(matrix, bod);
+
+	b[0] = xs - y;
+	b[1] = ys - x;
+	bod.initData(b);
+	renderSymetrical(matrix, bod);
+
+	b[0] = xs - y;
+	b[1] = ys + x;
+	bod.initData(b);
+	renderSymetrical(matrix, bod);
+
+	b[0] = xs - x;
+	b[1] = ys + y;
+	bod.initData(b);
+	renderSymetrical(matrix, bod);
+}
+
+void bresenhamCircle(float xs, float ys, float zs, float r) {
+
+	if (currentContext->areaMode == SGL_POINT) {
+		sglBegin(SGL_POINTS);
+		sglVertex3f(xs, ys, zs);
+		sglEnd();
+	}
+
+	float x, y, p;
+	x = 0;
+	y = r;
+	p = 3 - 2 * r;
+	
+	while (x < y) {
+		setSymetricalPixels(x, y, xs, ys);
+		if (p < 0) {
+			p = p + 4 * x + 6;
+			
+		}
+		else {
+			p = p + 4 * (x - y) + 10;
+			y = y - 1;
+		}
+		x = x + 1;
+	}
+	if (x == y)(setSymetricalPixels(x, y, xs, ys));
+}
+
+
+
 void drawLines()
 {
 	auto projSize = currentContext->projectionMatricesStack.size() - 1;
@@ -578,12 +617,19 @@ void drawLineStrip()
 
 void drawLineLoop()
 {
-	int startx = currentContext->vertexBuffer.at(0).x;
-	int starty = currentContext->vertexBuffer.at(0).y;
+
 	auto projSize = currentContext->projectionMatricesStack.size() - 1;
 	auto mvSize = currentContext->modelViewMatricesStack.size() - 1;
 	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
 
+	Vertex vert = currentContext->vertexBuffer[0];
+	Matrix bod(4, 1);
+	float b[] = { vert.x, vert.y, vert.z, vert.w };
+	bod.initData(b);
+	Matrix res = (matrix * bod) * (1 / bod.m_data[3][0]);
+
+	int startx = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
+	int starty = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
 
 	int length = 0;
 
@@ -607,8 +653,15 @@ void drawLineLoop()
 		length++;
 	}
 
-	int endx = currentContext->vertexBuffer.at(length).x;
-	int endy = currentContext->vertexBuffer.at(length).y;
+	Vertex vert2 = currentContext->vertexBuffer[length];
+	Matrix bod2(4, 1);
+	float b2[] = { vert2.x, vert2.y, vert2.z, vert2.w };
+	bod2.initData(b2);
+	Matrix res2 = (matrix * bod2) * (1 / bod2.m_data[3][0]);
+
+	int endx = currentContext->viewport.m_data[0][0] * res2.m_data[0][0] + currentContext->viewport.m_data[2][0];
+	int endy = currentContext->viewport.m_data[1][0] * res2.m_data[1][0] + currentContext->viewport.m_data[3][0];
+
 	bresenhamLine(endx, startx, endy, starty);
 }
 
