@@ -87,16 +87,32 @@ struct Context {
         drawingColor.b = 1;
 		viewport.makeIdentity();
     }
+
+	~Context() {
+
+		delete[] colorBuffer;
+		delete[] depthBuffer;
+
+		for (unsigned int j = 0; j < vertexBuffer.size(); ++j)
+			delete vertexBuffer[j];
+
+
+		vertexBuffer.shrink_to_fit();
+		projectionMatricesStack.clear();
+		modelViewMatricesStack.clear();
+		projectionMatricesStack.shrink_to_fit();
+		modelViewMatricesStack.shrink_to_fit();
+	}
 };
 
 /// SGL variables
-
 bool sglBeginEndRunning = false;
 bool sglBeginEndSceneRunning = false;
 int maxStackSize = 100;
 std::vector<Context*> contexts;
 int contextCounter = 0;
 Context* currentContext;
+bool popFlag = false;
 
 
 static inline void setErrCode(sglEErrorCode c) 
@@ -160,14 +176,6 @@ void sglInit(void) {
 void sglFinish(void) {
     for (unsigned int i = 0; i < contexts.size(); i++) {
 		Context *curr = contexts[i];
-
-		delete[] curr->colorBuffer;
-		delete[] curr->depthBuffer;
-
-		for (unsigned int j = 0; j < curr->vertexBuffer.size(); ++j) {
-			//delete curr->vertexBuffer[i];
-		}
-
         delete curr;
     }
 
@@ -220,9 +228,6 @@ void sglSetContext(int id) {
 			break;
         }
     }
-    if (found) {
-        //std::cout << id << std::endl;
-    }
 	if (!found) _libStatus = SGL_INVALID_VALUE;
 }
 
@@ -242,7 +247,6 @@ float *sglGetColorBufferPointer(void) {
 void sglClearColor(float r, float g, float b, float alpha) {
 	if (!currentContext || sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
    
-	//std::cout << currentContext->index << std::endl;
     currentContext->clearColor.r = r;
     currentContext->clearColor.g = g;
     currentContext->clearColor.b = b;
@@ -253,7 +257,7 @@ void sglClear(unsigned what) {
     //printf("Yavolal se\n");
 	if (what == SGL_COLOR_BUFFER_BIT) {
         for (int i = 0; i < currentContext->width * currentContext->height; i += 3) {
-            currentContext->colorBuffer[i] = currentContext->clearColor.r;
+            currentContext->colorBuffer[i]	   = currentContext->clearColor.r;
             currentContext->colorBuffer[i + 1] = currentContext->clearColor.g;
             currentContext->colorBuffer[i + 2] = currentContext->clearColor.b;
         }
@@ -481,15 +485,17 @@ void sglPushMatrix(void) {
 
 		if (maxStackSize == currentContext->projectionMatricesStack.size()) { _libStatus = SGL_STACK_OVERFLOW; return; }
 
-		Matrix m = *currentContext->projectionMatricesStack.end();
-		currentContext->projectionMatricesStack.push_back(m);
+		Matrix m = currentContext->projectionMatricesStack[currentContext->projectionMatricesStack.size() - 1];
+		Matrix newM = m;
+		currentContext->projectionMatricesStack.push_back(newM);
 	}
 	else if (currentContext->matrixMode == SGL_MODELVIEW) {
 
 		if (maxStackSize == currentContext->modelViewMatricesStack.size()) { _libStatus = SGL_STACK_OVERFLOW; return; }
 
-		Matrix m = *currentContext->modelViewMatricesStack.end();
-		currentContext->modelViewMatricesStack.push_back(m);
+		Matrix m = currentContext->modelViewMatricesStack[currentContext->modelViewMatricesStack.size() - 1];
+		Matrix newM = m;
+		currentContext->modelViewMatricesStack.push_back(newM);
 	}
 }
 
@@ -498,12 +504,12 @@ void sglPopMatrix(void) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	if (currentContext->matrixMode == SGL_PROJECTION) {
-		if (currentContext->projectionMatricesStack.size() == 1) { _libStatus = SGL_STACK_UNDERFLOW; return; }
+		if (currentContext->projectionMatricesStack.size() <= 1 && !popFlag) { _libStatus = SGL_STACK_UNDERFLOW; return; }
 
 		currentContext->projectionMatricesStack.pop_back();
 	}
 	else if (currentContext->matrixMode == SGL_MODELVIEW) {
-		if (currentContext->modelViewMatricesStack.size() == 1) { _libStatus = SGL_STACK_UNDERFLOW; return; }
+		if (currentContext->modelViewMatricesStack.size() <= 1 && !popFlag) { _libStatus = SGL_STACK_UNDERFLOW; return; }
 
 		currentContext->modelViewMatricesStack.pop_back();
 	}
@@ -514,19 +520,45 @@ void sglLoadIdentity(void) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 	
     if (currentContext->matrixMode == SGL_PROJECTION) {
-		//(*currentContext->projectionMatricesStack.end()).makeIdentity();
+		bool emptyStack = currentContext->projectionMatricesStack.size() == 0;
+		Matrix m;
+		if (!emptyStack) {
+			m = currentContext->projectionMatricesStack[currentContext->projectionMatricesStack.size() - 1];
+		}
+		m.makeIdentity();
+		Matrix newM = m;
+		if (!emptyStack) {
+			popFlag = true;
+			sglPopMatrix();
+			popFlag = false;
+		}		
+		currentContext->projectionMatricesStack.push_back(newM);
     }
     else if (currentContext->matrixMode == SGL_MODELVIEW) {
-		//(*currentContext->modelViewMatricesStack.end()).makeIdentity();
+		bool emptyStack = currentContext->modelViewMatricesStack.size() == 0;
+		Matrix m;
+		if (!emptyStack)
+			m = currentContext->modelViewMatricesStack[currentContext->modelViewMatricesStack.size() - 1];
+		m.makeIdentity();
+		Matrix newM = m;
+		if (!emptyStack) {
+			popFlag = true;
+			sglPopMatrix();
+			popFlag = false;
+		}
+		currentContext->modelViewMatricesStack.push_back(newM);
     }
 }
 
 void sglLoadMatrix(const float *matrix) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+	
 	Matrix toLoad(4,4);
 	toLoad.initData(matrix);
+	popFlag = true;
 	sglPopMatrix();
+	popFlag = false;
 	if (_libStatus == SGL_NO_ERROR) {
 		if (currentContext->matrixMode == SGL_PROJECTION) {
 			currentContext->projectionMatricesStack.push_back(toLoad);
@@ -545,12 +577,16 @@ void sglMultMatrix(const float *matrix) {
 	toMult.initData(matrix);
 
 	if (currentContext->matrixMode == SGL_PROJECTION) {
-		Matrix m = (*currentContext->projectionMatricesStack.end());
-		//(*currentContext->projectionMatricesStack.end()) = m * toMult;
+		Matrix m = currentContext->projectionMatricesStack[currentContext->projectionMatricesStack.size() - 1];
+		Matrix newM = m * toMult;
+		sglPopMatrix();
+		currentContext->projectionMatricesStack.push_back(newM);
 	}
 	else if (currentContext->matrixMode == SGL_MODELVIEW) {
-		Matrix m = (*currentContext->modelViewMatricesStack.end());
-		//(*currentContext->projectionMatricesStack.end()) = m * toMult;
+		Matrix m = currentContext->modelViewMatricesStack[currentContext->modelViewMatricesStack.size() - 1];
+		Matrix newM = m * toMult;
+		sglPopMatrix();
+		currentContext->modelViewMatricesStack.push_back(newM);
 	}
 }
 
@@ -558,24 +594,77 @@ void sglTranslate(float x, float y, float z) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
+	float m[] = {
+	1, 0, 0, x, // col 1
+	0, 1, 0, y, // col 2
+	0, 0, 1, z, // col 3
+	0, 0, 0, 1};// col 4
+	sglMultMatrix(m);
 }
 
 void sglScale(float scalex, float scaley, float scalez) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
+	float m[] = {
+	scalex, 0, 0, 0, // col 1
+	0, scaley, 0, 0, // col 2
+	0, 0, scalez, 0, // col 3
+	0, 0, 0, 1 };// col 4
+	sglMultMatrix(m);
 }
 
 void sglRotate2D(float angle, float centerx, float centery) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
+	float sinus = sin(angle);
+	float cosinus = cos(angle);
+
+	/*float t_mat[] = {
+	1, 0, 0, centerx, // col 1
+	0, 1, 0, centery, // col 2
+	0, 0, 1, 0, // col 3
+	0, 0, 0, 1 };// col 4
+
+	float minus_t_mat[] = {
+	1, 0, 0, -centerx, // col 1
+	0, 1, 0, -centery, // col 2
+	0, 0, 1, 0, // col 3
+	0, 0, 0, 1 };// col 4
+
+	float rotate[] = {
+	cosinus, -sinus, 0, 0, // col 1
+	sinus, cosinus, 0, 0, // col 2
+	0, 0, 1, 0, // col 3
+	0, 0, 0, 1 };// col 4*/
+
+	float all[] = {
+		cosinus, -sinus, 0, -centerx * cosinus + centery * sinus + centerx, // col 1
+		sinus, cosinus, 0,  -centerx * sinus - centery * cosinus + centery, // col 2
+		0, 0, 1, 0, // col 3
+		0, 0, 0, 1};// col 4
+
+	//sglMultMatrix(minus_t_mat);
+	//sglMultMatrix(rotate);
+	//sglMultMatrix(t_mat);
+	sglMultMatrix(all);
 }
 
 void sglRotateY(float angle) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
+	float sinus = sin(angle);
+	float cosinus = cos(angle);
+
+	float rotate[] = {
+	cosinus,	0,	-sinus, 0,		// col 1
+	0,			1,		 0, 0,		// col 2
+	sinus,		0, cosinus, 0,		// col 3
+	0,			0,		 0, 1 };	// col 4
+
+	sglMultMatrix(rotate);
 }
 
 void sglOrtho(float left, float right, float bottom, float top, float near, float far) {
@@ -584,7 +673,13 @@ void sglOrtho(float left, float right, float bottom, float top, float near, floa
 
 	if (left == right || top == bottom || near == far) { _libStatus = SGL_INVALID_VALUE; return; }
 
-
+	float ortho[] = {
+	2 / (right - left), 0, 0, -(right + left) / (right - left),
+	0, 2 / (top - bottom), 0, -(top + bottom) / (top - bottom),
+	0, 0, -2 / (far - near),  -(far + near) / (far - near),
+	0, 0, 0, 1
+	};
+	sglMultMatrix(ortho);
 }
 
 void sglFrustum(float left, float right, float bottom, float top, float near, float far) {
@@ -592,6 +687,14 @@ void sglFrustum(float left, float right, float bottom, float top, float near, fl
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	if (left == right || top == bottom || near == far || near < 0 || far < 0) { _libStatus = SGL_INVALID_VALUE; return; }
+
+	float flustrum[] = {
+	2 * near / (right - left), 0, (right + left) / (right - left), 0,
+	0, 2 * near / (top - bottom), (top + bottom) / (top - bottom), 0,
+	0, 0, (far + near) / (far - near), 2 * far * near / (far - near),
+	0, 0, -1, 0
+	};
+	sglMultMatrix(flustrum);
 
 }
 
