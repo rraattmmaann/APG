@@ -324,7 +324,10 @@ void approximationEllipse(float x, float y, float z, float a, float b) {
     sglEnd();
 }
 
-void approximationArc(float x, float y, float z, float a, float b) {
+void approximationArc(float x, float y, float z, float radius, float from, float to) {
+    
+    float x1;
+    float y1;
     
 
 }
@@ -518,7 +521,8 @@ void drawLineLoop()
 
     int endx = currentContext->vertexBuffer.at(length)->x;
     int endy = currentContext->vertexBuffer.at(length)->y;
-    bresenhamLine(startx, endx, starty, endy);
+    //bresenhamLine(startx, endx, starty, endy);
+    bresenhamLine(endx, startx, endy, starty);
 }
 
 
@@ -590,6 +594,7 @@ void sglArc(float x, float y, float z, float radius, float from, float to) {
 
 	if (radius < 0) { _libStatus = SGL_INVALID_VALUE; return; }
 
+    approximationArc(x, y, z, radius, from, to);
 
 }
 
