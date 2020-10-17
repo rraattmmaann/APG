@@ -477,38 +477,34 @@ void bresenhamLine(int x1, int x2, int y1, int y2)
 
 void approximationEllipse(float x, float y, float z, float a, float b) {
 
+	
 	if (currentContext->areaMode == SGL_POINT) {
 		sglBegin(SGL_POINTS);
 		sglVertex3f(x, y, z);
 		sglEnd();
 	}
-
-	float x1 = a;
-	float y1 = 0;
-	float x2 = 0;
-	float y2 = 0; 
+	float x2_, y2_;
+	float x2,y2; 
 	float alpha = 2 * M_PI / 40;
 	float angle = 0;
-
-	
-
+	float x1 = a * cos(0);
+	float y1 = b * sin(0);
 	float CA = cos(alpha);
 	float SA = sin(alpha);
 
-	sglBegin(SGL_LINE_LOOP); //comment to use bresenham
+	sglBegin(SGL_LINE_STRIP); //comment to use bresenham
 
-	sglVertex3f(x + a * cos(angle), y + b * sin(angle), z);
-	for (int i = 1; i < 40; i++) {
-		//x2 = CA*x1 * a - SA*y1 * a;
-		//y2 = SA*x1 * b  + CA*y1 * b;
-		x2 = a * cos(i * alpha);
-		y2 = b * sin(i * alpha);
-		sglVertex3f(x + x2, y + y2, z);
+	for (int i = 0; i <= 40; i++) {
+		//x2 = CA*x1 - SA*y1;
+		//y2 = SA*x1 + CA*y1;
+		x2_ = a * cos(i * alpha);
+		y2_ = b * sin(i * alpha);
+		//sglVertex3f((x + x2) * a, (y + y2) * b, z);
+		//sglVertex3f(x + x2 * a , y + y2 * b, z);
+		sglVertex3f(x + x2_, y + y2_, z);
 		//bresenhamLine(x + x1, x + x2, y + y1, y + y2);
-
 		//x1 = x2;
 		//y1 = y2;
-
 	}
 	sglEnd();
 }
@@ -519,42 +515,32 @@ void approximationArc(float x, float y, float z, float radius, float from, float
 	float y1;
 	float x2;
 	float y2;
-	int alpha = 40.0 * abs(to - from) / (2 * M_PI);
+	int steps = 40 *(to - from) / (2 * M_PI);
 
-	//float CA = cos(alpha);
-	//float SA = sin(alpha);
-
-
-	
 	sglBegin(SGL_LINE_STRIP);
 
-	
+	float alpha = (to - from) / steps;	
+	float CA = cos(alpha);
+	float SA = sin(alpha);
 
-	//float num = 40 * abs(to - from) / (2 * M_PI);
-	float step = abs(to - from) / alpha;
-
-	
 	x1 = radius * cos(from);
 	y1 = radius * sin(from);
-
+	
 	sglVertex3f(x + x1, y + y1, z);
-
-	for (int i = 0; i <= alpha; i++) {
-		//x2 = CA * x1 - SA * y1;
-		//y2 = SA * x1 + CA * y1;
+	for (int i = 1; i <= steps; i++) {
+		x2 = CA * x1 - SA * y1;
+		y2 = SA * x1 + CA * y1;
 		//bresenhamLine(x + x1, x + x2, y + y1, y + y2);
 		//x1 = x2;
 		//y1 = y2;
-
 		//x2 = radius * cos(from + i * alpha);
 		//y2 = radius * sin(from + i * alpha);
-		x2 = radius * cos(from + i*step);
-		y2 = radius * sin(from + i*step);
+		//x2 = radius * cos(from + i*step);
+		//y2 = radius * sin(from + i*step);
 		//bresenhamLine(x + x1, x + x2, y + y1, y + y2);
 		sglVertex3f(x + x2, y + y2, z);
-		//x1 = x2;
-		//y1 = y2;
-		
+		x1 = x2;
+		y1 = y2;
 	}
 	sglEnd();
 }
