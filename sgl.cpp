@@ -63,7 +63,7 @@ struct Context {
 
 	std::vector<Matrix> modelViewMatricesStack;
 	std::vector<Matrix> projectionMatricesStack;
-	std::vector<Vertex> vertexBuffer;
+	std::vector<Matrix> vertexBuffer;
 
 	Context(int width, int height, int index) {
 		this->width = width;
@@ -72,6 +72,7 @@ struct Context {
 		colorBuffer = new float[width * height * 3];
 		viewport.width = 1;
 		viewport.height = 4;
+		viewport.makeIdentity();
 		depthBuffer = new float[width * height];
 		//TODO malloc vertexBuffer
 		depthTest = false;
@@ -81,17 +82,15 @@ struct Context {
 		drawingColor.r = 1;
 		drawingColor.g = 1;
 		drawingColor.b = 1;
-		viewport.makeIdentity();
+		vertexBuffer.reserve(width*height);
+		modelViewMatricesStack.reserve(32);
+		projectionMatricesStack.reserve(10);
 	}
 
 	~Context() {
 
 		delete[] colorBuffer;
 		delete[] depthBuffer;
-
-		/*for (unsigned int j = 0; j < vertexBuffer.size(); ++j)
-			delete vertexBuffer[j];*/
-
 
 		vertexBuffer.shrink_to_fit();
 		projectionMatricesStack.clear();
@@ -174,7 +173,6 @@ void sglFinish(void) {
 		Context *curr = contexts[i];
 		delete curr;
 	}
-
 }
 
 int sglCreateContext(int width, int height) {
@@ -205,7 +203,6 @@ void sglDestroyContext(int id) {
 		int cont = contexts[i]->index;
 		if (cont == id) {
 			delete contexts[i];
-			//contexts.erase(contexts.begin() + id);
 			--contextCounter;
 			found = true;
 			break;
@@ -250,7 +247,7 @@ void sglClearColor(float r, float g, float b, float alpha) {
 
 void sglClear(unsigned what) {
 	if (!currentContext || sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
-	//printf("Yavolal se\n");
+
 	if (what == SGL_COLOR_BUFFER_BIT) {
 		for (int i = 0; i < currentContext->width * currentContext->height; i += 3) {
 			currentContext->colorBuffer[i] = currentContext->clearColor.r;
@@ -310,8 +307,9 @@ void bresenhamCircle(float xs, float ys, float zs, float r) {
 		sglVertex3f(xs, ys, zs);
 		sglEnd();
 	}
-
-	Matrix matrix = currentContext->projectionMatricesStack.back() * currentContext->modelViewMatricesStack.back();
+	Matrix MV = currentContext->modelViewMatricesStack.back();
+	Matrix P = currentContext->projectionMatricesStack.back();
+	Matrix matrix = P * MV;
 
 	Matrix stred(4, 1);
 	float b[] = { xs, ys, zs, 1 };
@@ -319,9 +317,6 @@ void bresenhamCircle(float xs, float ys, float zs, float r) {
 	Matrix res = (matrix * stred) * (1 / stred.m_data[3][0]);
 	float stx = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
 	float sty = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
-
-	Matrix MV = currentContext->modelViewMatricesStack.back();
-	Matrix P = currentContext->projectionMatricesStack.back();
 
 	float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
 	float Pscale = P.m_data[0][0] * P.m_data[1][1] - P.m_data[1][0] * P.m_data[0][1];
@@ -347,15 +342,13 @@ void bresenhamCircle(float xs, float ys, float zs, float r) {
 
 void drawPoints()
 {
-	auto projSize = currentContext->projectionMatricesStack.size() - 1;
-	auto mvSize = currentContext->modelViewMatricesStack.size() - 1;
-	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
+	Matrix matrix = currentContext->projectionMatricesStack.back() * currentContext->modelViewMatricesStack.back();
 
-	for (Vertex vert : currentContext->vertexBuffer) {
-		Matrix bod(4, 1);
-		float b[] = { vert.x, vert.y, vert.z, vert.w };
-		bod.initData(b);
-		Matrix res = (matrix * bod) * (1 / bod.m_data[3][0]);
+	for (Matrix vert : currentContext->vertexBuffer) {
+		//Matrix bod(4, 1);
+		//float b[] = { vert.x, vert.y, vert.z, vert.w };
+		//bod.initData(b);
+		Matrix res = (matrix * vert) * (1 / vert.m_data[3][0]);
 
 		float x = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
 		float y = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
@@ -527,24 +520,20 @@ void approximationArc(float x, float y, float z, float radius, float from, float
 	
 }
 
-
 void drawLines()
 {
-	auto projSize = currentContext->projectionMatricesStack.size() - 1;
-	auto mvSize = currentContext->modelViewMatricesStack.size() - 1;
-	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
-	//TODO postupnì projdeme vèechny vrcholy ve vertexBufferu a na každou další úseèku zavoláme bresenhamLine();
+	Matrix matrix = currentContext->projectionMatricesStack.back() * currentContext->modelViewMatricesStack.back();
 	for (unsigned int i = 0; i < currentContext->vertexBuffer.size(); i += 2) {
-		Vertex v1 = currentContext->vertexBuffer[i];
-		Vertex v2 = currentContext->vertexBuffer[i + 1];
-		Matrix bod1(4, 1);
+		Matrix v1 = currentContext->vertexBuffer[i];
+		Matrix v2 = currentContext->vertexBuffer[i + 1];
+		/*Matrix bod1(4, 1);
 		Matrix bod2(4, 1);
 		float b1[] = { v1.x, v1.y, v1.z, v1.w };
 		float b2[] = { v2.x, v2.y, v2.z, v2.w };
 		bod1.initData(b1);
-		bod2.initData(b2);
-		Matrix res1 = (matrix * bod1) * (1 / bod1.m_data[3][0]);
-		Matrix res2 = (matrix * bod2) * (1 / bod2.m_data[3][0]);
+		bod2.initData(b2);*/
+		Matrix res1 = (matrix * v1) * (1 / v1.m_data[3][0]);
+		Matrix res2 = (matrix * v2) * (1 / v2.m_data[3][0]);
 
 		int x1 = currentContext->viewport.m_data[0][0] * res1.m_data[0][0] + currentContext->viewport.m_data[2][0];
 		int y1 = currentContext->viewport.m_data[1][0] * res1.m_data[1][0] + currentContext->viewport.m_data[3][0];
@@ -561,22 +550,20 @@ void drawLines()
 
 void drawLineStrip()
 {
-	auto projSize = currentContext->projectionMatricesStack.size() - 1;
-	auto mvSize = currentContext->modelViewMatricesStack.size() - 1;
-	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
+	Matrix matrix = currentContext->projectionMatricesStack.back() * currentContext->modelViewMatricesStack.back();
 
 	for (unsigned int i = 0; i < currentContext->vertexBuffer.size() - 1; i++) {
 
-		Vertex v1 = currentContext->vertexBuffer[i];
-		Vertex v2 = currentContext->vertexBuffer[i + 1];
-		Matrix bod1(4, 1);
+		Matrix v1 = currentContext->vertexBuffer[i];
+		Matrix v2 = currentContext->vertexBuffer[i + 1];
+		/*Matrix bod1(4, 1);
 		Matrix bod2(4, 1);
 		float b1[] = { v1.x, v1.y, v1.z, v1.w };
 		float b2[] = { v2.x, v2.y, v2.z, v2.w };
 		bod1.initData(b1);
-		bod2.initData(b2);
-		Matrix res1 = (matrix * bod1) * (1 / bod1.m_data[3][0]);
-		Matrix res2 = (matrix * bod2) * (1 / bod2.m_data[3][0]);
+		bod2.initData(b2);*/
+		Matrix res1 = (matrix * v1) * (1 / v1.m_data[3][0]);
+		Matrix res2 = (matrix * v2) * (1 / v2.m_data[3][0]);
 
 		int x1 = currentContext->viewport.m_data[0][0] * res1.m_data[0][0] + currentContext->viewport.m_data[2][0];
 		int y1 = currentContext->viewport.m_data[1][0] * res1.m_data[1][0] + currentContext->viewport.m_data[3][0];
@@ -589,16 +576,13 @@ void drawLineStrip()
 
 void drawLineLoop()
 {
-
-	auto projSize = currentContext->projectionMatricesStack.size() - 1;
-	auto mvSize = currentContext->modelViewMatricesStack.size() - 1;
-	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
+	Matrix matrix = currentContext->projectionMatricesStack.back() * currentContext->modelViewMatricesStack.back();
 	
-	Vertex vert = currentContext->vertexBuffer[0];
-	Matrix bod(4, 1);
+	Matrix vert = currentContext->vertexBuffer[0];
+	/*Matrix bod(4, 1);
 	float b[] = { vert.x, vert.y, vert.z, vert.w };
-	bod.initData(b);
-	Matrix res = (matrix * bod) * (1 / bod.m_data[3][0]);
+	bod.initData(b);*/
+	Matrix res = (matrix * vert) * (1 / vert.m_data[3][0]);
 
 	int startx = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
 	int starty = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
@@ -606,16 +590,16 @@ void drawLineLoop()
 	int length = 0;
 
 	for (unsigned int i = 0; i < currentContext->vertexBuffer.size() - 1; i++) {
-		Vertex v1 = currentContext->vertexBuffer[i];
-		Vertex v2 = currentContext->vertexBuffer[i + 1];
-		Matrix bod1(4, 1);
+		Matrix v1 = currentContext->vertexBuffer[i];
+		Matrix v2 = currentContext->vertexBuffer[i + 1];
+		/*Matrix bod1(4, 1);
 		Matrix bod2(4, 1);
 		float b1[] = { v1.x, v1.y, v1.z, v1.w };
 		float b2[] = { v2.x, v2.y, v2.z, v2.w };
 		bod1.initData(b1);
-		bod2.initData(b2);
-		Matrix res1 = (matrix * bod1) * (1 / bod1.m_data[3][0]);
-		Matrix res2 = (matrix * bod2) * (1 / bod2.m_data[3][0]);
+		bod2.initData(b2);*/
+		Matrix res1 = (matrix * v1) * (1 / v1.m_data[3][0]);
+		Matrix res2 = (matrix * v2) * (1 / v2.m_data[3][0]);
 
 		int x1 = currentContext->viewport.m_data[0][0] * res1.m_data[0][0] + currentContext->viewport.m_data[2][0];
 		int y1 = currentContext->viewport.m_data[1][0] * res1.m_data[1][0] + currentContext->viewport.m_data[3][0];
@@ -625,11 +609,11 @@ void drawLineLoop()
 		length++;
 	}
 
-	Vertex vert2 = currentContext->vertexBuffer[length];
-	Matrix bod2(4, 1);
+	Matrix vert2 = currentContext->vertexBuffer[length];
+	/*Matrix bod2(4, 1);
 	float b2[] = { vert2.x, vert2.y, vert2.z, vert2.w };
-	bod2.initData(b2);
-	Matrix res2 = (matrix * bod2) * (1 / bod2.m_data[3][0]);
+	bod2.initData(b2);*/
+	Matrix res2 = (matrix * vert2) * (1 / vert2.m_data[3][0]);
 
 	int endx = currentContext->viewport.m_data[0][0] * res2.m_data[0][0] + currentContext->viewport.m_data[2][0];
 	int endy = currentContext->viewport.m_data[1][0] * res2.m_data[1][0] + currentContext->viewport.m_data[3][0];
@@ -670,15 +654,24 @@ void sglEnd(void) {
 
 
 void sglVertex4f(float x, float y, float z, float w) {
-	currentContext->vertexBuffer.push_back(Vertex(x, y, z, w));
+	Matrix m(4,1);
+	float b[] = {x,y,z,w};
+	m.initData(b);
+	currentContext->vertexBuffer.emplace_back(m);
 }
 
 void sglVertex3f(float x, float y, float z) {
-	currentContext->vertexBuffer.push_back(Vertex(x, y, z, 1));
+	Matrix m(4, 1);
+	float b[] = { x,y,z,1 };
+	m.initData(b);
+	currentContext->vertexBuffer.emplace_back(m);
 }
 
 void sglVertex2f(float x, float y) {
-	currentContext->vertexBuffer.push_back(Vertex(x, y, 0, 1));
+	Matrix m(4, 1);
+	float b[] = { x,y,0,1 };
+	m.initData(b);
+	currentContext->vertexBuffer.emplace_back(m);
 }
 
 void sglCircle(float x, float y, float z, float radius) {
@@ -730,17 +723,17 @@ void sglPushMatrix(void) {
 
 		if (maxStackSize == currentContext->projectionMatricesStack.size()) { _libStatus = SGL_STACK_OVERFLOW; return; }
 
-		Matrix m = currentContext->projectionMatricesStack[currentContext->projectionMatricesStack.size() - 1];
-		Matrix newM = m;
-		currentContext->projectionMatricesStack.push_back(newM);
+		Matrix m = currentContext->projectionMatricesStack.back();
+		//Matrix newM = m;
+		currentContext->projectionMatricesStack.emplace_back(m);
 	}
 	else if (currentContext->matrixMode == SGL_MODELVIEW) {
 
 		if (maxStackSize == currentContext->modelViewMatricesStack.size()) { _libStatus = SGL_STACK_OVERFLOW; return; }
 
-		Matrix m = currentContext->modelViewMatricesStack[currentContext->modelViewMatricesStack.size() - 1];
-		Matrix newM = m;
-		currentContext->modelViewMatricesStack.push_back(newM);
+		Matrix m = currentContext->modelViewMatricesStack.back();
+		//Matrix newM = m;
+		currentContext->modelViewMatricesStack.emplace_back(m);
 	}
 }
 
@@ -773,15 +766,13 @@ void sglLoadIdentity(void) {
 			m = currentContext->projectionMatricesStack.back();
 		}
 		m.makeIdentity();
-		Matrix newM = m;
+		//Matrix newM = m;
 		if (!emptyStack) {
 			popFlag = true;
 			sglPopMatrix();
 			popFlag = false;
 		}
-		/*std::cout << "sglLoadIdentity: projection \n";
-		newM.print();*/
-		currentContext->projectionMatricesStack.push_back(newM);
+		currentContext->projectionMatricesStack.emplace_back(m);
 	}
 	else if (currentContext->matrixMode == SGL_MODELVIEW) {
 		bool emptyStack = currentContext->modelViewMatricesStack.size() == 0;
@@ -789,15 +780,13 @@ void sglLoadIdentity(void) {
 		if (!emptyStack)
 			m = currentContext->modelViewMatricesStack.back();
 		m.makeIdentity();
-		Matrix newM = m;
+		//Matrix newM = m;
 		if (!emptyStack) {
 			popFlag = true;
 			sglPopMatrix();
 			popFlag = false;
 		}
-		/*std::cout << "sglLoadIdentity: modelview \n";
-		newM.print();*/
-		currentContext->modelViewMatricesStack.push_back(newM);
+		currentContext->modelViewMatricesStack.emplace_back(m);
 	}
 }
 
@@ -812,10 +801,10 @@ void sglLoadMatrix(const float *matrix) {
 	popFlag = false;
 	if (_libStatus == SGL_NO_ERROR) {
 		if (currentContext->matrixMode == SGL_PROJECTION) {
-			currentContext->projectionMatricesStack.push_back(toLoad);
+			currentContext->projectionMatricesStack.emplace_back(toLoad);
 		}
 		else if (currentContext->matrixMode == SGL_MODELVIEW) {
-			currentContext->modelViewMatricesStack.push_back(toLoad);
+			currentContext->modelViewMatricesStack.emplace_back(toLoad);
 		}
 	}
 }
@@ -828,24 +817,20 @@ void sglMultMatrix(const float *matrix) {
 	toMult.initData(matrix);
 
 	if (currentContext->matrixMode == SGL_PROJECTION) {
-		Matrix m = currentContext->projectionMatricesStack[currentContext->projectionMatricesStack.size() - 1];
+		Matrix m = currentContext->projectionMatricesStack.back();
 		Matrix newM = m * toMult;
 		popFlag = true;
 		sglPopMatrix();
 		popFlag = false;
-		/*std::cout << "sglMult: projection \n";
-		newM.print();*/
-		currentContext->projectionMatricesStack.push_back(newM);
+		currentContext->projectionMatricesStack.emplace_back(newM);
 	}
 	else if (currentContext->matrixMode == SGL_MODELVIEW) {
-		Matrix m = currentContext->modelViewMatricesStack[currentContext->modelViewMatricesStack.size() - 1];
+		Matrix m = currentContext->modelViewMatricesStack.back();
 		Matrix newM = m * toMult;
 		popFlag = true;
 		sglPopMatrix();
 		popFlag = false;
-		/*std::cout << "sglMult: modelview \n";
-		newM.print();*/
-		currentContext->modelViewMatricesStack.push_back(newM);
+		currentContext->modelViewMatricesStack.emplace_back(newM);
 	}
 }
 
@@ -966,7 +951,7 @@ void sglViewport(int x, int y, int width, int height) {
 	currentContext->viewport.m_data[0][0] = width / 2.0f;
 	currentContext->viewport.m_data[1][0] = height / 2.0f;
 	currentContext->viewport.m_data[2][0] = x + width / 2.0f;
-	currentContext->viewport.m_data[3][0] = (y + height) / 2.0f;
+	currentContext->viewport.m_data[3][0] = y + height / 2.0f;
 
 	currentContext->viewportScale = (width*height) / 4;
 }

@@ -5,7 +5,7 @@
 class Matrix {
 public:
 	Matrix(int _height, int _width);
-	Matrix() : width(4), height(4), m_data(NULL) {}; // We are using 4x4 matrices
+	Matrix() : width(4), height(4) {}; // We are using 4x4 matrices
 	Matrix(const Matrix& rhs);	
 	~Matrix();
 
@@ -25,7 +25,7 @@ public:
 
 	unsigned int width;
 	unsigned int height;
-	float** m_data;
+	float m_data[4][4] = { {1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1} };
 };
 
 

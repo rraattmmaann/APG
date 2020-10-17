@@ -44,15 +44,15 @@ Matrix::~Matrix() {
 	if (m_data == NULL) return;
 
 	// Free the memory.
-	for (unsigned int i = 0; i < height; ++i ) {
+	/*for (unsigned int i = 0; i < height; ++i ) {
 		delete[] m_data[i];
 	}
-	delete[] m_data;
+	delete[] m_data;*/
 
 	// Reset
 	width = 0;
 	height = 0;
-	m_data = NULL;
+	//m_data = NULL;
 }
 
 // Assignment Operator
@@ -65,10 +65,10 @@ Matrix& Matrix::operator=(const Matrix& rhs) {
 // Allcoate matrix
 void Matrix::allocate() {
 
-	m_data = new float*[height];
+	/*m_data = new float*[height];
 	for (unsigned int i = 0; i < height; i++ ) {
 		m_data[i] = new float[width]();
-	}
+	}*/
 }
 
 // Function for move constructor
