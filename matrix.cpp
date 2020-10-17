@@ -2,36 +2,18 @@
 #include <algorithm>
 #include <cstdint>
 #include <stdexcept>
-#include <chrono>
-#include <thread>
 
 #include "matrix.hpp"
 
-// Time to miliseconds, for messuring commputation time
-template <typename TimePoint>
-std::chrono::milliseconds to_ms(TimePoint tp) {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(tp);
-}
-
 // Custom constructor
 Matrix::Matrix(int _height, int _width) : 
-	width(_width), height(_height) {
-
-	allocate();
-
-	/*for (unsigned int i = 0; i < height; ++i) {
-		for (unsigned int j = 0; j < width; ++j) {
-			std::cin >> m_data[i][j];
-		}
-	}*/
-}
+	width(_width), height(_height) {}
 
 // Copy constructor
 Matrix::Matrix(const Matrix& rhs) :
 	width(rhs.width),
 	height(rhs.height)
 	{
-		allocate();
 		for (unsigned int i = 0; i < height; i++) {
 			std::copy(rhs.m_data[i], rhs.m_data[i] + width, m_data[i]);
 		}
@@ -41,16 +23,9 @@ Matrix::Matrix(const Matrix& rhs) :
 Matrix::~Matrix() {
 	if (m_data == NULL) return;
 
-	// Free the memory.
-	/*for (unsigned int i = 0; i < height; ++i ) {
-		delete[] m_data[i];
-	}
-	delete[] m_data;*/
-
 	// Reset
 	width = 0;
 	height = 0;
-	//m_data = NULL;
 }
 
 // Assignment Operator
@@ -58,15 +33,6 @@ Matrix& Matrix::operator=(const Matrix& rhs) {
     Matrix temp(rhs);
     swap(temp);
     return *this;
-}
-
-// Allcoate matrix
-void Matrix::allocate() {
-
-	/*m_data = new float*[height];
-	for (unsigned int i = 0; i < height; i++ ) {
-		m_data[i] = new float[width]();
-	}*/
 }
 
 // Function for move constructor
@@ -83,19 +49,18 @@ Matrix Matrix::operator*(const Matrix& rhs){
 		throw std::invalid_argument( "ERROR: Matrix dimensions do not correspond! Aborting multiplication.\n" );
 	
 	Matrix result(height, rhs.width);
-	Matrix b = rhs.transpose();
 
-	result = multiplySequential(*this, b, result);
-
-	return result;
+	return multiplySequential(*this, rhs, result);
 }
 
 Matrix Matrix::operator*(const float& rhs) {
 
 	Matrix result(height, width);
-
+	
+	// In this case we only use this operator to multiply a vector by a value,
+	// so we do not need to multiply the whole matrix
 	for (unsigned int i = 0; i < height; i++) {
-		for (unsigned int j = 0; j < width; j++) {
+		for (unsigned int j = 0; j < 1; j++) {				
 			result.m_data[i][j] = m_data[i][j] *= rhs;
 		}
 	}
@@ -103,45 +68,25 @@ Matrix Matrix::operator*(const float& rhs) {
 	return result;
 }
 
-// Transpose this matrix and return transposed matrix
-Matrix Matrix::transpose() const {
-
-    Matrix transposed(width, height);
-
-    for (unsigned int i = 0; i < height; i++) {
-        for (unsigned int j = 0; j < width; j++) {
-            transposed.m_data[j][i] = m_data[i][j];
-        }
-    }
-
-    return transposed;
-}
-
 // Sequential multiplication of two matrices
 Matrix& Matrix::multiplySequential(const Matrix& a, const Matrix& b, Matrix& result) {
 
 	float sum = 0;
-	//auto start = std::chrono::high_resolution_clock::now();
 
 	for (unsigned int i=0; i < a.height; i++) {  //i = rows
-		for (unsigned int j=0; j < b.height; j++) {  //j = cols
+		for (unsigned int j=0; j < b.width; j++) {  //j = cols
 			sum = 0;
 			for(unsigned int k = 0; k < a.width; ++k) {
-                sum += a.m_data[i][k] * b.m_data[j][k];
+                sum += a.m_data[i][k] * b.m_data[k][j];
             }
             result.m_data[i][j] = sum;
 		}
 	}
-	//auto end = std::chrono::high_resolution_clock::now();
-
-	//std::cout << "Sequential multiplication took " << to_ms(end - start).count() << "ms.\n";
 
 	return result;
 }
 
 void Matrix::makeIdentity() {
-
-	if (m_data == NULL) allocate();
 
 	for (unsigned int i = 0; i < height; i++) {  //i = rows
 		for (unsigned int j = 0; j < width; j++) {  //j = cols
@@ -151,13 +96,15 @@ void Matrix::makeIdentity() {
 	}
 }
 
-void Matrix::initData(const float *m) {
-
-	if (m_data == NULL) allocate();
+void Matrix::initData(const float *m, bool isVec) {
 
 	int counter = 0;
+
+	int for_j_ceiling = width;
+	if (isVec) for_j_ceiling = 1;
+
 	for (unsigned int i = 0; i < height; i++) {  //i = rows
-		for (unsigned int j = 0; j < width; j++) {  //j = cols
+		for (unsigned int j = 0; j < for_j_ceiling; j++) {  //j = cols
 			m_data[i][j] = m[counter];
 			++counter;
 		}
