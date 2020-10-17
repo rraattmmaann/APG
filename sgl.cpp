@@ -291,7 +291,7 @@ void setPixel(int x, int y) {
 
 }
 
-void setSymetricalPixels(float x, float y, float xs, float ys)
+void setSymetricalPixels(int x, int y, int xs, int ys)
 {
 	setPixel(xs + x, ys + y);
 	setPixel(xs + y, ys + x);
@@ -317,8 +317,8 @@ void bresenhamCircle(float xs, float ys, float zs, float r) {
 	float b[] = { xs, ys, zs, 1 };
 	stred.initData(b);
 	Matrix res = (matrix * stred) * (1 / stred.m_data[3][0]);
-	float stx = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
-	float sty = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
+	int stx = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
+	int sty = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
 
 	Matrix MV = currentContext->modelViewMatricesStack.back();
 	Matrix P = currentContext->projectionMatricesStack.back();
@@ -327,7 +327,7 @@ void bresenhamCircle(float xs, float ys, float zs, float r) {
 	float Pscale = P.m_data[0][0] * P.m_data[1][1] - P.m_data[1][0] * P.m_data[0][1];
 	r *= sqrt(MVscale * Pscale * currentContext->viewportScale);
 
-	float x, y, p;
+	int x, y, p;
 	x = 0;
 	y = r;
 	p = 3 - 2 * r;
@@ -335,13 +335,15 @@ void bresenhamCircle(float xs, float ys, float zs, float r) {
 		setSymetricalPixels(x, y, stx, sty);
 		if (p < 0) {
 			p = p + 4 * x + 6;
-
 		}
 		else {
 			p = p + 4 * (x - y) + 10;
 			y = y - 1;
 		}
 		x = x + 1;
+	}
+	if (x == y) {
+		setSymetricalPixels(x, y, stx, sty);
 	}
 }
 
@@ -352,30 +354,46 @@ void drawPoints()
 	Matrix matrix = currentContext->projectionMatricesStack[projSize] * currentContext->modelViewMatricesStack[mvSize];
 
 	for (Vertex vert : currentContext->vertexBuffer) {
+		
 		Matrix bod(4, 1);
 		float b[] = { vert.x, vert.y, vert.z, vert.w };
 		bod.initData(b);
 		Matrix res = (matrix * bod) * (1 / bod.m_data[3][0]);
 
-		float x = currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0];
-		float y = currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0];
-
-		for (int a = 0; a < currentContext->pointSize; a++) {
-			for (int b = 0; b < currentContext->pointSize; b++) {
-				setPixel(x + a, round(y) + b);
+		int x = static_cast<int>(currentContext->viewport.m_data[0][0] * res.m_data[0][0] + currentContext->viewport.m_data[2][0]);
+		int y = static_cast<int>(currentContext->viewport.m_data[1][0] * res.m_data[1][0] + currentContext->viewport.m_data[3][0]);
+		
+		int pointSize = currentContext->pointSize;
+		
+		
+		if (pointSize % 2 == 0) {
+			x = x - pointSize / 2 - 1;
+			y = y - pointSize / 2 - 1;
+		}
+		else {
+			x = x - (pointSize - 1) / 2;
+			y = y - (pointSize - 1) / 2;
+		}
+		
+		
+		for (int a = 0; a < pointSize; a++) {
+			for (int b = 0; b < pointSize; b++) {
+				setPixel(x + a, y + b);
 			}
 		}
+		
+
+		//for (int a = static_cast<int>(x - pointSize / 2) ; a < static_cast<int>(x + pointSize / 2); a++) {
+		//	for (int b = static_cast<int>(y - pointSize / 2) ; b < static_cast<int>(y + pointSize / 2); b++) {
+		//		setPixel(a, b);
+		//	}
+		//}
 	}
 }
 
 void bresenhamLine(int x1, int x2, int y1, int y2)
 {
-
 	int c0, c1, p;
-	int x1backup = x1;
-	int x2backup = x2;
-	int y1backup = y1;
-	int y2backup = y2;
 
 	if (x2 - x1 <= 0 && y2 - y1 <= 0) {
 		int tempX = x1;
@@ -389,9 +407,45 @@ void bresenhamLine(int x1, int x2, int y1, int y2)
 
 	}
 
-	if (abs(x2 - x1) > abs(y2 - y1)) { // vodorovná
+	
+	if(abs(y2 - y1) > abs(x2 - x1)) {//svislá
+		if (y2 - y1 < 0 && x2 - x1 > 0) {
+			int tempX = x1;
+			int tempY = y1;
 
-		if (y2 - y1 > 0 && x2 - x1 < 0) {
+			x1 = x2;
+			y1 = y2;
+
+			x2 = tempX;
+			y2 = tempY;
+		}
+		
+		int xDirection = 1;
+
+		if (x2 - x1 <= 0) {
+			xDirection = -xDirection;
+		}
+
+		c0 = 2 * abs(x2 - x1);
+		c1 = c0 - 2 * abs(y2 - y1);
+		p = c0 - abs(y2 - y1);
+
+		setPixel(x1, y1);
+
+		for (int i = y1 + 1; i <= y2; i++) {
+			if (p < 0) {
+				p += c0;
+			}
+			else {
+				p += c1;
+				x1 += xDirection;
+			}
+			setPixel(x1, i);
+		}
+	}else{
+		   // vodorovná
+
+		if (y2 - y1 >= 0 && x2 - x1 <= 0) {
 			int tempX = x1;
 			int tempY = y1;
 
@@ -411,8 +465,8 @@ void bresenhamLine(int x1, int x2, int y1, int y2)
 		}
 
 		c0 = 2 * abs(y1 - y2);
-		c1 = c0 - 2 * abs(x1 - x2);
-		p = c0 - abs(x1 - x2);
+		c1 = c0 - 2 * abs(x2 - x1);
+		p = c0 - abs(x2 - x1);
 
 		for (int i = x1 + 1; i < x2; i++) {
 			if (p < 0) {
@@ -425,40 +479,6 @@ void bresenhamLine(int x1, int x2, int y1, int y2)
 			setPixel(i, y1);
 		}
 	}
-	else {//svislá
-		if (y2 - y1 < 0 && x2 - x1 > 0) {
-			int tempX = x1;
-			int tempY = y1;
-
-			x1 = x2;
-			y1 = y2;
-
-			x2 = tempX;
-			y2 = tempY;
-		}
-		setPixel(x1, y1);
-		int xDirection = 1;
-
-		if (x2 - x1 <= 0) {
-			xDirection = -xDirection;
-		}
-
-		c0 = 2 * abs(x1 - x2);
-		c1 = c0 - 2 * abs(y1 - y2);
-		p = c0 - abs(y1 - y2);
-
-
-		for (int i = y1 + 1; i < y2; i++) {
-			if (p < 0) {
-				p += c0;
-			}
-			else {
-				p += c1;
-				x1 += xDirection;
-			}
-			setPixel(x1, i);
-		}
-	}
 
 }
 
@@ -467,22 +487,24 @@ void approximationEllipse(float x, float y, float z, float a, float b) {
 	if (currentContext->areaMode == SGL_POINT) {
 		sglBegin(SGL_POINTS);
 		sglVertex3f(x, y, z);
-		sglEnd;
+		sglEnd();
 	}
 
 	float x1 = a;
 	float y1 = 0;
-	float x2;
-	float y2;
+	float x2 = 0;
+	float y2 = 0; 
 	float alpha = 2 * M_PI / 40;
 	float angle = 0;
 
-	sglVertex3f(x + a * cos(angle), y + b * sin(angle), z);
+	
 
 	float CA = cos(alpha);
 	float SA = sin(alpha);
 
 	sglBegin(SGL_LINE_LOOP); //comment to use bresenham
+
+	sglVertex3f(x + a * cos(angle), y + b * sin(angle), z);
 	for (int i = 1; i < 40; i++) {
 		//x2 = CA*x1 * a - SA*y1 * a;
 		//y2 = SA*x1 * b  + CA*y1 * b;
@@ -500,31 +522,48 @@ void approximationEllipse(float x, float y, float z, float a, float b) {
 
 void approximationArc(float x, float y, float z, float radius, float from, float to) {
 
-	float x1 = radius;
-	float y1 = 0;
+	float x1;
+	float y1;
 	float x2;
 	float y2;
-	float alpha = 40.0 * abs(to - from) / (2 * M_PI);
+	int alpha = 40.0 * abs(to - from) / (2 * M_PI);
 
-	float CA = cos(alpha);
-	float SA = sin(alpha);
+	//float CA = cos(alpha);
+	//float SA = sin(alpha);
 
-	sglBegin(SGL_LINE_LOOP);
 
-	for (unsigned int i = 1; i < 40; i++) {
+	
+	sglBegin(SGL_LINE_STRIP);
+
+	
+
+	//float num = 40 * abs(to - from) / (2 * M_PI);
+	float step = abs(to - from) / alpha;
+
+	
+	x1 = radius * cos(from);
+	y1 = radius * sin(from);
+
+	sglVertex3f(x + x1, y + y1, z);
+
+	for (int i = 0; i <= alpha; i++) {
 		//x2 = CA * x1 - SA * y1;
 		//y2 = SA * x1 + CA * y1;
 		//bresenhamLine(x + x1, x + x2, y + y1, y + y2);
 		//x1 = x2;
 		//y1 = y2;
 
-		x2 = radius * cos(from + i * alpha);
-		y2 = radius * sin(from + i * alpha);
+		//x2 = radius * cos(from + i * alpha);
+		//y2 = radius * sin(from + i * alpha);
+		x2 = radius * cos(from + i*step);
+		y2 = radius * sin(from + i*step);
+		//bresenhamLine(x + x1, x + x2, y + y1, y + y2);
 		sglVertex3f(x + x2, y + y2, z);
-		//from -= alpha
+		//x1 = x2;
+		//y1 = y2;
+		
 	}
 	sglEnd();
-	
 }
 
 
@@ -966,7 +1005,7 @@ void sglViewport(int x, int y, int width, int height) {
 	currentContext->viewport.m_data[0][0] = width / 2.0f;
 	currentContext->viewport.m_data[1][0] = height / 2.0f;
 	currentContext->viewport.m_data[2][0] = x + width / 2.0f;
-	currentContext->viewport.m_data[3][0] = (y + height) / 2.0f;
+	currentContext->viewport.m_data[3][0] = y + height / 2.0f;
 
 	currentContext->viewportScale = (width*height) / 4;
 }
