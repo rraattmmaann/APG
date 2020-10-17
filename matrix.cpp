@@ -100,7 +100,7 @@ void Matrix::initData(const float *m, bool isVec) {
 
 	int counter = 0;
 
-	int for_j_ceiling = width;
+	unsigned int for_j_ceiling = width;
 	if (isVec) for_j_ceiling = 1;
 
 	for (unsigned int i = 0; i < height; i++) {  //i = rows

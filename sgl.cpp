@@ -36,7 +36,7 @@ struct Vertex {
 bool sglBeginEndRunning = false;
 bool sglBeginEndSceneRunning = false;
 bool popFlag = false;
-int maxStackSize = 100;
+unsigned int maxStackSize = 100;
 std::vector<Context*> contexts;
 int contextCounter = 0;
 Context* currentContext;
@@ -131,7 +131,7 @@ void sglDestroyContext(int id) {
 
 	iterContext it = contexts.begin();
 	iterContext et = contexts.end();
-	for (it; it != et; ++it) {
+	for (; it != et; ++it) {
 		int cont = (*it)->index;
 		if (cont == id) {
 			delete *(it);
@@ -149,7 +149,7 @@ void sglSetContext(int id) {
 
 	iterContext it = contexts.begin();
 	iterContext et = contexts.end();
-	for (it; it != et; ++it) {
+	for (; it != et; ++it) {
 		if (id == (*it)->index) {
 			currentContext = (*it);
 			found = true;
