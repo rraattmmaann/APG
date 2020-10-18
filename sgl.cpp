@@ -72,10 +72,10 @@ const char* sglGetErrorString(sglEErrorCode error)
 //---------------------------------------------------------------------------
 
 void sglInit(void) {
-	currentContext = 0;
+	currentContext = NULL;
 	try {
 		// TODO ...
-		// Alloc all needed data structures
+		// Nothing to alloc yet, maybe in later homework parts?
 	}
 	catch (std::bad_alloc &e) {
 		std::cerr << "Allocation failed! Message: " << e.what() << std::endl;
@@ -336,7 +336,7 @@ void sglLoadMatrix(const float *matrix) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	Matrix toLoad(4, 4);
-	toLoad.initData(matrix, false);
+	toLoad.initData(matrix);
 	popFlag = true;
 	sglPopMatrix();
 	popFlag = false;
@@ -354,7 +354,7 @@ void sglMultMatrix(const float *matrix) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	Matrix toMult(4, 4);
-	toMult.initData(matrix, false);
+	toMult.initData(matrix);
 
 	if (currentContext->matrixMode == SGL_PROJECTION) {
 		Matrix m = currentContext->projectionMatricesStack.back();
@@ -403,6 +403,7 @@ void sglRotate2D(float angle, float centerx, float centery) {
 	float sinus = sin(angle);
 	float cosinus = cos(angle);
 
+	// ALready multiplied transformation: x_res = T^-1 * R * T * x
 	float all[] = {
 		cosinus, -sinus, 0, -centerx * cosinus + centery * sinus + centerx, // col 1
 		sinus, cosinus, 0,  -centerx * sinus - centery * cosinus + centery, // col 2
