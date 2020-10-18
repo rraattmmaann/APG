@@ -9,28 +9,12 @@
 #define _USE_MATH_DEFINES
 
 #include "sgl.h"
-#include "sglhelper.h"
+#include "context.h"
 #include <vector>
 #include <math.h>
 
 /// Current error code.
 static sglEErrorCode _libStatus = SGL_NO_ERROR;
-
-/// Other structures
-struct Vertex {
-	float x;
-	float y;
-	float z;
-	float w;
-
-	Vertex() {};
-	Vertex(float x, float y, float z, float w) {
-		this->x = x;
-		this->y = y;
-		this->z = z;
-		this->w = w;
-	}
-};
 
 /// SGL variables
 bool sglBeginEndRunning = false;
@@ -223,7 +207,6 @@ void sglEnd(void) {
 	sglBeginEndRunning = false;
 	currentContext->vertexBuffer.clear();
 }
-
 
 void sglVertex4f(float x, float y, float z, float w) {
 	currentContext->addVertex(x, y, z, w);

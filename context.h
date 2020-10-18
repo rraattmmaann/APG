@@ -6,8 +6,7 @@
 #include "sgl.h"
 #include "matrix.hpp"
 
-using iter = std::vector<Matrix>::iterator;
-
+/// Structure representing a pixel in the canvas
 struct colorPixel {
 	float r;
 	float g;
@@ -17,7 +16,8 @@ struct colorPixel {
 /// Holds all variables need fot the current context
 class Context {
 public:
-	/// WIdth and height of the canvas
+	/* --- VARIABLES --- */
+	/// Width and height of the canvas
 	int width, height;
 
 	/// Index of the current context
@@ -63,42 +63,22 @@ public:
 	std::vector<Matrix> projectionMatricesStack;
 
 	/// Vector of vertices, fills withing the glBegin() and glEnd() sequence
-	std::vector<Matrix> vertexBuffer;
+	std::vector<Vertex> vertexBuffer;
 
+	/* --- CONSTRUCTORS & DESTRUCTORS --- */
+	/// Default Context constructor
 	Context() {}
 	
-	Context(int width, int height, int index) {
-		this->width = width;
-		this->height = height;
-		this->index = index;
-		colorBuffer = new float[width * height * 3];
-		viewport.width = 1;
-		viewport.height = 4;
-		viewport.makeIdentity();
-		depthBuffer = new float[width * height];
-		depthTest = false;
-		clearColor.r = 0;
-		clearColor.g = 0;
-		clearColor.b = 0;
-		drawingColor.r = 1;
-		drawingColor.g = 1;
-		drawingColor.b = 1;
-		vertexBuffer.reserve(width*height);
-		modelViewMatricesStack.reserve(32);
-		projectionMatricesStack.reserve(10);
-	}
+	/// Custom Context constructor
+	///		@param width[in] width of the canvas
+	///		@param height[in] height of the canvas
+	///		@param index[in] the index of current context
+	Context(int width, int height, int index);
 
-	~Context() {
-		if (colorBuffer) delete[] colorBuffer;
-		if (depthBuffer) delete[] depthBuffer;
+	/// Default Context destructor
+	~Context();
 
-		vertexBuffer.shrink_to_fit();
-		projectionMatricesStack.clear();
-		modelViewMatricesStack.clear();
-		projectionMatricesStack.shrink_to_fit();
-		modelViewMatricesStack.shrink_to_fit();
-	}
-
+	/* --- FUNCTIONS --- */
 	/// Creates and adds a vertex with specified coordidinates to the vertex buffer
 	///		@param x[in] vertex x coordinate
 	///		@param y[in] vertex y coordinate

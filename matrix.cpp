@@ -5,11 +5,10 @@
 
 #include "matrix.hpp"
 
-// Custom constructor
+
 Matrix::Matrix(int _height, int _width) : 
 	width(_width), height(_height) {}
 
-// Copy constructor
 Matrix::Matrix(const Matrix& rhs) :
 	width(rhs.width),
 	height(rhs.height)
@@ -19,81 +18,52 @@ Matrix::Matrix(const Matrix& rhs) :
 		}
 	}
 
-// Destructor
 Matrix::~Matrix() {
-	if (m_data == NULL) return;
-
 	// Reset
 	width = 0;
 	height = 0;
 }
 
-// Assignment Operator
 Matrix& Matrix::operator=(const Matrix& rhs) {
     Matrix temp(rhs);
     swap(temp);
     return *this;
 }
 
-// Function for move constructor
-void Matrix::swap(Matrix& rhs) {
-    std::swap(m_data, rhs.m_data);
-    std::swap(width, rhs.width);
-    std::swap(height, rhs.height);
-}
-
-// Operator * for matrix mulitplication
 Matrix Matrix::operator*(const Matrix& rhs){
 		
 	if (width != rhs.height)
 		throw std::invalid_argument( "ERROR: Matrix dimensions do not correspond! Aborting multiplication.\n" );
 	
 	Matrix result(height, rhs.width);
-
-	return multiplySequential(*this, rhs, result);
-}
-
-Matrix Matrix::operator*(const float& rhs) {
-
-	Matrix result(height, width);
-	
-	// In this case we only use this operator to multiply a vector by a value,
-	// so we do not need to multiply the whole matrix
-	for (unsigned int i = 0; i < height; i++) {
-		for (unsigned int j = 0; j < 1; j++) {				
-			result.m_data[i][j] = m_data[i][j] *= rhs;
-		}
-	}
-
-	return result;
-}
-
-// Sequential multiplication of two matrices
-Matrix& Matrix::multiplySequential(const Matrix& a, const Matrix& b, Matrix& result) {
-
 	float sum = 0;
 
-	for (unsigned int i=0; i < a.height; i++) {  //i = rows
-		for (unsigned int j=0; j < b.width; j++) {  //j = cols
+	for (unsigned int i = 0; i < height; i++) {  //i = rows
+		for (unsigned int j = 0; j < rhs.width; j++) {  //j = cols
 			sum = 0;
-			for(unsigned int k = 0; k < a.width; ++k) {
-                sum += a.m_data[i][k] * b.m_data[k][j];
-            }
-            result.m_data[i][j] = sum;
+			for (unsigned int k = 0; k < width; ++k) {
+				sum += m_data[i][k] * rhs.m_data[k][j];
+			}
+			result.m_data[i][j] = sum;
 		}
 	}
-
 	return result;
 }
 
-void Matrix::makeIdentity() {
+Vertex Matrix::operator*(const Vertex& rhs) {
 
-	for (unsigned int i = 0; i < height; i++) {  //i = rows
-		for (unsigned int j = 0; j < width; j++) {  //j = cols
-			if (i == j) m_data[i][j] = 1;
-			else		m_data[i][j] = 0;
+	Vertex result;
+	float sum;
+
+	for (unsigned int i = 0; i < height; i++) {
+		sum = 0;
+		for (unsigned int j = 0; j < width; j++) {
+			 sum += m_data[i][j] * rhs.m_data[j];
 		}
+		result.m_data[i] = sum;
 	}
+
+	return result;
 }
 
 void Matrix::initData(const float *m, bool isVec) {
@@ -109,6 +79,22 @@ void Matrix::initData(const float *m, bool isVec) {
 			++counter;
 		}
 	}
+}
+
+void Matrix::makeIdentity() {
+
+	for (unsigned int i = 0; i < height; i++) {  //i = rows
+		for (unsigned int j = 0; j < width; j++) {  //j = cols
+			if (i == j) m_data[i][j] = 1;
+			else		m_data[i][j] = 0;
+		}
+	}
+}
+
+void Matrix::swap(Matrix& rhs) {
+	std::swap(m_data, rhs.m_data);
+	std::swap(width, rhs.width);
+	std::swap(height, rhs.height);
 }
 
 void Matrix::print() {
