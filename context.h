@@ -32,6 +32,9 @@ public:
 	/// Depth buffer
 	float* depthBuffer;
 
+	/// Current value of the far projection plane, used for depth buffer clearing
+	float far;
+
 	/// Current viewport matrix
 	Matrix viewport;
 
@@ -430,6 +433,20 @@ public:
 		bresenhamLine(endx, startx, endy, starty);
 	}
 
+	void drawPolygon() {
+		// TODO
+		if (areaMode == SGL_FILL) {
+		
+		}
+		else { // areaMode = SGL_LINE
+		
+		}
+	}
+
+	void drawAreaLight() {
+		// TODO
+	}
+
 	/// Places currently used color to the specifed position in the color buffer
 	///		@param x[in] pixel x coordinate
 	///		@param y[in] pixel y coordinate
@@ -488,8 +505,16 @@ public:
 			}
 		}
 		else if (what == SGL_DEPTH_BUFFER_BIT) {
-			for (int i = 0; i < width * height; i += 1) {
-				depthBuffer[i] = 1000000;
+			for (int i = 0; i < width * height; ++i) {
+				depthBuffer[i] = far;
+			}
+		}
+		else if (what == (SGL_COLOR_BUFFER_BIT | SGL_DEPTH_BUFFER_BIT)) {
+			for (int i = 0; i < width * height; i += 3) {
+				colorBuffer[i] = clearColor.r;
+				colorBuffer[i + 1] = clearColor.g;
+				colorBuffer[i + 2] = clearColor.b;
+				depthBuffer[i] = depthBuffer[i + 1] = depthBuffer[i + 2] = far;
 			}
 		}
 		else {

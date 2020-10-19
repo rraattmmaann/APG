@@ -200,6 +200,14 @@ void sglEnd(void) {
 		currentContext->drawLineLoop();
 		break;
 	}
+	case SGL_POLYGON: {
+		currentContext->drawPolygon();
+		break;
+	}
+	case SGL_AREA_LIGHT: {
+		currentContext->drawAreaLight();
+		break;
+	}
 	default:
 		break;
 	}
@@ -442,6 +450,8 @@ void sglOrtho(float left, float right, float bottom, float top, float near, floa
 	0, 0, 0, 1 };	// col 4
 
 	sglMultMatrix(ortho);
+
+	currentContext->far = far;
 }
 
 void sglFrustum(float left, float right, float bottom, float top, float near, float far) {
