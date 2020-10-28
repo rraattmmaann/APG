@@ -280,11 +280,6 @@ void sglBegin(sglEElementType mode);
  */
 void sglEnd(void);
 
-/**
-    Vykreslí bod na souèadnice x,y colorBufferu pøednastavenou barvou
-*/
-void setPixel(int x, int y);
-
 /// Input of a 4-D vertex.
 /**
   Accepts a four-dimensional vector to be processed with respect to the current

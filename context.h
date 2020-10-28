@@ -3,6 +3,7 @@
 #include <cmath> 
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 #include "sgl.h"
 #include "matrix.hpp"
@@ -433,13 +434,119 @@ public:
 		bresenhamLine(endx, startx, endy, starty);
 	}
 
-	void drawPolygon() {
-		// TODO
-		if (areaMode == SGL_FILL) {
+	void getPruseciky(int y, Vertex &a, Vertex &b, std::vector<int> &pruseciky) {
+		int x1 = a.m_data[0];
+		int y1 = a.m_data[1];
+		int x2 = b.m_data[0];		
+		int y2 = b.m_data[1];
+
+		if (x2-x1 == 0) {
+			pruseciky.push_back(x1);
+			return;
+		}
+
+		float slope = (float)(y2 - y1) / (float)(x2 - x1);
 		
+		float shift = y1 - slope * x1;
+
+		// y = slope * x + shift
+		// dosadime za y promenou y xd
+		int x = (y - shift) / slope;
+		pruseciky.push_back(x);
+	}
+	/// Draws polygon, filling depends on the currently set area mode
+	///  - SGL_FILL - polygon is filled using scanline filling algorithm
+	///  - SGL_LINE - only the polygon edges are rendered using bresenham in line loop
+	void drawPolygon() {
+		if (areaMode == SGL_FILL) {
+
+			std::vector<Vertex> screenSpaceVertices;
+			screenSpaceVertices.reserve(vertexBuffer.size());
+			int yMax = 0;
+			int yMin = height;
+
+			Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
+
+			Vertex vert = vertexBuffer[0];
+			Vertex res = (matrix * vert) * (1 / vert.m_data[3]);
+
+			int startx = viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0];
+			int starty = viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0];
+
+			int length = 0;
+
+			for (unsigned int i = 0; i < vertexBuffer.size() - 1; i++) {
+				Vertex v1 = vertexBuffer[i];
+				Vertex v2 = vertexBuffer[i + 1];
+				Vertex res1 = (matrix * v1) * (1 / v1.m_data[3]);
+				Vertex res2 = (matrix * v2) * (1 / v2.m_data[3]);
+
+				int x1 = viewport.m_data[0][0] * res1.m_data[0] + viewport.m_data[2][0];
+				int x2 = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
+				int y1 = viewport.m_data[1][0] * res1.m_data[1] + viewport.m_data[3][0];
+				int y2 = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
+				screenSpaceVertices.push_back(Vertex(x1, y1, 0, 1));
+				screenSpaceVertices.push_back(Vertex(x2, y2, 0, 1));
+				length++;
+
+				yMax = std::max(std::max(y1, y2), yMax);
+				yMin = std::min(std::min(y1, y2), yMin);
+			}
+
+			Vertex vert2 = vertexBuffer[length];
+			Vertex res2 = (matrix * vert2) * (1 / vert2.m_data[3]);
+
+			int endx = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
+			int endy = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
+			
+			screenSpaceVertices.push_back(Vertex(endx, endy, 0, 1));
+			screenSpaceVertices.push_back(Vertex(startx, starty, 0, 1));
+
+
+			for (int y = yMax; y > yMin; --y) {
+				std::vector<int> pruseciky;
+				pruseciky.reserve(screenSpaceVertices.size() / 2);
+
+				for (int i = 0; i < screenSpaceVertices.size(); i+=2) {
+
+					Vertex a = screenSpaceVertices[i];
+					Vertex b = screenSpaceVertices[i + 1];
+
+					int y1 = a.m_data[1];
+					int y2 = b.m_data[1];
+
+					if (y1 < y2) {
+						int tmp = y1;
+						y1 = y2;
+						y2 = tmp;
+					}
+
+					if (y1 == y2) continue;
+					if (y > y1 && y > y2) continue;
+					if (y < y1 && y <= y2) continue;
+
+					if (y1 > y2)
+						getPruseciky(y, a, b, pruseciky);
+					else
+						getPruseciky(y, b, a, pruseciky);
+				}
+
+				std::sort(pruseciky.begin(), pruseciky.end());				
+
+				for (int i = 0; i < pruseciky.size()-1; i+=2) {
+
+					int x1 = pruseciky[i];
+					int x2 = pruseciky[i+1];
+
+					for (int j = x1+1; j <= x2; ++j) {
+						setPixel(j,y);
+					}
+				}
+				pruseciky.clear();
+			}
 		}
 		else { // areaMode = SGL_LINE
-		
+			drawLineLoop();
 		}
 	}
 
