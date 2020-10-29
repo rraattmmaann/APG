@@ -12,6 +12,9 @@ public:
 	/// Default Vertex constructor
 	Vertex() {};
 
+	/// Default Vertex constructor
+	~Vertex() = default;
+
 	/// Custom Vertex constructor
 	///		@param x[in] vertex x coordinate
 	///		@param y[in] vertex y coordinate

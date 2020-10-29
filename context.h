@@ -386,6 +386,9 @@ public:
 
 	/// Draws lines between each 2 vertices from the vertex buffer and handles their rendering
 	void drawLines() {
+
+		if (vertexBuffer.size() % 2 > 0) return;
+
 		Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
 		for (unsigned int i = 0; i < vertexBuffer.size(); i += 2) {
@@ -426,6 +429,9 @@ public:
 	/// Draws lines between each 2 vertices from the vertex buffer and handles their rendering
 	/// and connects the first and the last vertex
 	void drawLineLoop() {
+
+		if (vertexBuffer.size() == 0) return;
+
 		Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
 		Vertex vert = vertexBuffer[0];
@@ -480,6 +486,7 @@ public:
 		int x = (y - shift) / slope;
 		pruseciky.push_back(x);
 	}
+
 	/// Draws polygon, filling depends on the currently set area mode
 	///  - SGL_FILL - polygon is filled using scanline filling algorithm
 	///  - SGL_LINE - only the polygon edges are rendered using bresenham in line loop

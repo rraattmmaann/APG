@@ -173,7 +173,7 @@ void sglClear(unsigned what) {
 void sglBegin(sglEElementType mode) {
 	if (sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	if (mode > 8 || mode < 1) { _libStatus = SGL_INVALID_ENUM; return; }
+	if (mode > SGL_AREA_LIGHT || mode < SGL_POINTS) { _libStatus = SGL_INVALID_ENUM; return; }
 
 	sglBeginEndRunning = true;
 	currentContext->elementType = mode;
@@ -251,10 +251,9 @@ void sglArc(float x, float y, float z, float radius, float from, float to) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	if (radius < 0) { _libStatus = SGL_INVALID_VALUE; return; }
+	if (radius < 0 || to < from) { _libStatus = SGL_INVALID_VALUE; return; }
 
 	currentContext->approximationArc(x, y, z, radius, from, to);
-
 }
 
 //---------------------------------------------------------------------------
@@ -262,7 +261,7 @@ void sglArc(float x, float y, float z, float radius, float from, float to) {
 //---------------------------------------------------------------------------
 
 void sglMatrixMode(sglEMatrixMode mode) {
-	if (mode > 2 || mode < 0) { _libStatus = SGL_INVALID_ENUM; return; }
+	if (mode != SGL_MODELVIEW && mode != SGL_PROJECTION) { _libStatus = SGL_INVALID_ENUM; return; }
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
@@ -495,7 +494,7 @@ void sglAreaMode(sglEAreaMode mode) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	if (mode > 2 || mode < 0) { _libStatus = SGL_INVALID_ENUM; return; }
+	if (mode > SGL_FILL || mode < SGL_POINT) { _libStatus = SGL_INVALID_ENUM; return; }
 
 	currentContext->areaMode = mode;
 }
@@ -513,7 +512,7 @@ void sglEnable(sglEEnableFlags cap) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	if (cap != 1) { _libStatus = SGL_INVALID_ENUM; return; }
+	if (cap != SGL_DEPTH_TEST) { _libStatus = SGL_INVALID_ENUM; return; }
 
 	currentContext->depthTest = cap;
 }
@@ -522,7 +521,7 @@ void sglDisable(sglEEnableFlags cap) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	if (cap != 1) { _libStatus = SGL_INVALID_ENUM; return; }
+	if (cap != SGL_DEPTH_TEST) { _libStatus = SGL_INVALID_ENUM; return; }
 
 	currentContext->depthTest = cap;
 }
