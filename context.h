@@ -216,24 +216,50 @@ public:
 		float Pscale = P.m_data[0][0] * P.m_data[1][1] - P.m_data[1][0] * P.m_data[0][1];
 		r *= sqrt(MVscale * Pscale * viewportScale);
 
-		int x, y, p;
-		x = 0;
-		y = r;
-		p = 3 - 2 * r;
-		while (x < y) {
-			setSymetricalPixels(x, y, stx, sty);
-			if (p < 0) {
-				p = p + 4 * x + 6;
+		if (areaMode == SGL_FILL) {
+			// souradnice bodu na kruhu
+			int x1;
+			int x2;
+
+			// pomocne promenne
+			int to = (sty + r);
+			auto sqrtContent = (r*r);
+			auto outerContent = stx + 0.5f;
+
+			for (int count = (sty - r); count <= to; ++count) {
+				/*
+				// dosazeni do vzorce kruhu a vypocitani xove souradnice bodu - stara verze
+				int K = r * r - count * count + 2 * sty * count - sty * sty - stx * stx;
+				x2 = (2 * stx + sqrt(4 * stx*stx + 4 * K)) / 2;
+				x1 = (2 * stx - sqrt(4 * stx*stx + 4 * K)) / 2;
+				*/
+
+				x1 = int(outerContent + sqrt(sqrtContent - ((count - sty)*(count - sty))));
+				x2 = int(outerContent - sqrt(sqrtContent - ((count - sty)*(count - sty))));
+
+				bresenhamLine(x1, x2, count, count);
 			}
-			else {
-				p = p + 4 * (x - y) + 10;
-				y = y - 1;
+		} else {		
+
+			int x, y, p;
+			x = 0;
+			y = r;
+			p = 3 - 2 * r;
+			while (x < y) {
+				setSymetricalPixels(x, y, stx, sty);
+				if (p < 0) {
+					p = p + 4 * x + 6;
+				}
+				else {
+					p = p + 4 * (x - y) + 10;
+					y = y - 1;
+				}
+				x = x + 1;
 			}
-			x = x + 1;
-		}
-		if (x == y) {
-			setSymetricalPixels(x, y, stx, sty);
-		}
+			if (x == y) {
+				setSymetricalPixels(x, y, stx, sty);
+			}
+		}		
 	}
 
 	/// Connects 2 given vertices with a line using the Bersenham line algorithm
