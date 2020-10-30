@@ -384,10 +384,10 @@ void sglTranslate(float x, float y, float z) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	float m[] = {
-	1, 0, 0, x,		// col 1
-	0, 1, 0, y,		// col 2
-	0, 0, 1, z,		// col 3
-	0, 0, 0, 1 };	// col 4
+	1, 0, 0, 0,		// col 1
+	0, 1, 0, 0,		// col 2
+	0, 0, 1, 0,		// col 3
+	x, y, z, 1 };	// col 4
 	sglMultMatrix(m);
 }
 
@@ -411,11 +411,18 @@ void sglRotate2D(float angle, float centerx, float centery) {
 	float cosinus = cos(angle);
 
 	// ALready multiplied transformation: x_res = T^-1 * R * T * x
-	float all[] = {
+	/*float all[] = {
 		cosinus, -sinus, 0, -centerx * cosinus + centery * sinus + centerx, // col 1
 		sinus, cosinus, 0,  -centerx * sinus - centery * cosinus + centery, // col 2
 		0, 0, 1, 0, // col 3
-		0, 0, 0, 1 };// col 4
+		0, 0, 0, 1
+	};// col 4*/
+	float all[] = {
+		cosinus, sinus, 0, 0, // col 1
+		-sinus, cosinus, 0,  0, // col 2
+		0, 0, 1, 0, // col 3
+		-centerx * cosinus + centery * sinus + centerx, -centerx * sinus - centery * cosinus + centery, 0, 1
+	};// col 4
 
 	sglMultMatrix(all);
 }
@@ -428,9 +435,9 @@ void sglRotateY(float angle) {
 	float cosinus = cos(-angle);
 
 	float rotate[] = {
-	cosinus,	0,	sinus, 0,		// col 1
+	cosinus,	0,	-sinus,  0,		// col 1
 	0,			1,		 0, 0,		// col 2
-	-sinus,		0, cosinus, 0,		// col 3
+	sinus,		0, cosinus, 0,		// col 3
 	0,			0,		 0, 1 };	// col 4
 
 	sglMultMatrix(rotate);
@@ -442,11 +449,17 @@ void sglOrtho(float left, float right, float bottom, float top, float near, floa
 
 	if (left == right || top == bottom || near == far) { _libStatus = SGL_INVALID_VALUE; return; }
 
-	float ortho[] = {
+	/*float ortho[] = {
 	2 / (right - left), 0, 0, -(right + left) / (right - left),	// col 1
 	0, 2 / (top - bottom), 0, -(top + bottom) / (top - bottom),	// col 2
 	0, 0, -2 / (far - near),  -(far + near) / (far - near),		// col 3
-	0, 0, 0, 1 };	// col 4
+	0, 0, 0, 1 };	// col 4*/
+
+	float ortho[] = {
+	2 / (right - left), 0, 0, 0,	// col 1
+	0, 2 / (top - bottom), 0, 0,	// col 2
+	0, 0, -2 / (far - near),  0,		// col 3
+	-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1 };	// col 4
 
 	sglMultMatrix(ortho);
 
@@ -459,11 +472,19 @@ void sglFrustum(float left, float right, float bottom, float top, float near, fl
 
 	if (left == right || top == bottom || near == far || near < 0 || far < 0) { _libStatus = SGL_INVALID_VALUE; return; }
 
-	float flustrum[] = {
+	/*float flustrum[] = {
 	2 * near / (right - left),	0,							(right + left) / (right - left),	0,	// col 1
 	0,							2 * near / (top - bottom),	(top + bottom) / (top - bottom),	0,	// col 2
 	0,							0,							-(far + near) / (far - near),		-2 * far * near / (far - near),	// col 3
-	0,							0,							-1,									0	}; // col 4
+	0,							0,							-1,									0	}; // col 4*/
+
+	
+
+	float flustrum[] = {
+	2 * near / (right - left),		0,							0,	0,	// col 1
+	0,								2 * near / (top - bottom),	0,	0,	// col 2
+	(right + left) / (right - left),							(top + bottom) / (top - bottom),	-(far + near) / (far - near),		-1,	// col 3
+	0,								0,							-2 * far * near / (far - near),									0 }; // col 4
 
 	currentContext->viewport.m_data[0][1] = (far - near) / 2;
 	currentContext->viewport.m_data[1][1] = (far + near) / 2;

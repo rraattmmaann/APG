@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <tuple>
 
 #include "sgl.h"
 #include "matrix.hpp"
@@ -209,6 +210,7 @@ public:
 			sglBegin(SGL_POINTS);
 			sglVertex3f(xs, ys, zs);
 			sglEnd();
+			return;
 		}
 		Matrix MV = modelViewMatricesStack.back();
 		Matrix P = projectionMatricesStack.back();
@@ -225,14 +227,13 @@ public:
 		float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
 		float Pscale = P.m_data[0][0] * P.m_data[1][1] - P.m_data[1][0] * P.m_data[0][1];
 		r *= sqrt(MVscale * Pscale * viewportScale);
-
+		
 		if (areaMode == SGL_FILL) {
 			// souradnice bodu na kruhu
 			int x1;
 			int x2;
-
 			// pomocne promenne
-			int to = (sty + r);
+			int to = (sty + round(r));
 			auto sqrtContent = (r*r);
 			auto outerContent = stx + 0.5f;
 
@@ -244,10 +245,10 @@ public:
 				x1 = (2 * stx - sqrt(4 * stx*stx + 4 * K)) / 2;
 				*/
 
-				x1 = int(outerContent + sqrt(sqrtContent - ((count - sty)*(count - sty))));
-				x2 = int(outerContent - sqrt(sqrtContent - ((count - sty)*(count - sty))));
+				x1 = int(outerContent - sqrt(sqrtContent - ((count - sty)*(count - sty))));
+				x2 = int(outerContent + sqrt(sqrtContent - ((count - sty)*(count - sty))));
 
-				bresenhamLine(x1, x2, count, count);
+				bresenhamLine(x1+1, x2, count, count);
 			}
 		} else {		
 
@@ -485,20 +486,17 @@ public:
 		bresenhamLine(endx, startx, endy, starty);
 	}
 
-	void getPruseciky(int y, Vertex &a, Vertex &b, std::vector<int> &pruseciky, std::vector<int> &zetka) {
+	void getPruseciky(int y, Vertex &a, Vertex &b, std::vector<std::tuple<int, float>> &pruseciky) {
 		int x1 = a.m_data[0];
 		int y1 = a.m_data[1];
 		int x2 = b.m_data[0];		
 		int y2 = b.m_data[1];
-		int z1 = a.m_data[2];
-		int z2 = b.m_data[2];
-		int z = (z1*(y2 - y) + z2 * (y - y1)) / (y2 - y1);
+		float z1 = a.m_data[2];
+		float z2 = b.m_data[2];
+		float z = (z1*(y2 - y) + z2 * (y - y1)) / (y2 - y1);
 
 		if (x2-x1 == 0) {
-			pruseciky.push_back(x1);
-
-			
-			zetka.push_back(1/z);
+			pruseciky.push_back(std::make_tuple(x1,z));
 			return;
 		}
 
@@ -509,8 +507,7 @@ public:
 		// y = slope * x + shift
 		// dosadime za y promenou y xd
 		int x = (y - shift) / slope;
-		pruseciky.push_back(x);
-		zetka.push_back(1/z);
+		pruseciky.push_back(std::make_tuple(x, z));
 	}
 
 	/// Draws polygon, filling depends on the currently set area mode
@@ -525,6 +522,12 @@ public:
 			int yMin = height;
 
 			Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
+			/*Matrix 
+			for (unsigned int i = 0; i < height; i++) {
+				for (unsigned int j = 0; j < width; j++) {
+					transposed.m_data[j][i] = m_data[i][j];
+				}
+			}*/
 
 			Vertex vert = vertexBuffer[0];
 			Vertex res = (matrix * vert);
@@ -532,7 +535,7 @@ public:
 
 			int startx = viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0];
 			int starty = viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0];
-			int startz = viewport.m_data[0][1] * res.m_data[2] + viewport.m_data[1][1];
+			float startz = viewport.m_data[0][1] * res.m_data[2] + viewport.m_data[1][1];
 
 			int length = 0;
 
@@ -548,8 +551,8 @@ public:
 				int x2 = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
 				int y1 = viewport.m_data[1][0] * res1.m_data[1] + viewport.m_data[3][0];
 				int y2 = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
-				int z1 = viewport.m_data[0][1] * res1.m_data[2] + viewport.m_data[1][1];
-				int z2 = viewport.m_data[0][1] * res2.m_data[2] + viewport.m_data[1][1];
+				float z1 = viewport.m_data[0][1] * res1.m_data[2] + viewport.m_data[1][1];
+				float z2 = viewport.m_data[0][1] * res2.m_data[2] + viewport.m_data[1][1];
 				screenSpaceVertices.push_back(Vertex(x1, y1, z1, 1));
 				screenSpaceVertices.push_back(Vertex(x2, y2, z2, 1));
 				length++;
@@ -564,17 +567,14 @@ public:
 
 			int endx = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
 			int endy = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
-			int endz = viewport.m_data[0][1] * res2.m_data[2] + viewport.m_data[1][1];
+			float endz = viewport.m_data[0][1] * res2.m_data[2] + viewport.m_data[1][1];
 
 			screenSpaceVertices.push_back(Vertex(endx, endy, endz, 1));
 			screenSpaceVertices.push_back(Vertex(startx, starty, startz, 1));
 
 
 			for (int y = yMax; y > yMin; --y) {
-				std::vector<int> pruseciky;
-				pruseciky.reserve(screenSpaceVertices.size() / 2);
-				std::vector<int> zetka;
-				zetka.reserve(screenSpaceVertices.size() / 2);
+				std::vector<std::tuple<int, float>> all;
 
 				for (int i = 0; i < screenSpaceVertices.size(); i+=2) {
 
@@ -595,26 +595,24 @@ public:
 					if (y < y1 && y <= y2) continue;
 
 					if (y1 > y2)
-						getPruseciky(y, a, b, pruseciky, zetka);
+						getPruseciky(y, a, b, all);
 					else
-						getPruseciky(y, b, a, pruseciky, zetka);
+						getPruseciky(y, b, a, all);
 				}
 
 								
-				if (pruseciky.size() > 1) {
-					std::sort(pruseciky.begin(), pruseciky.end());
-					for (int i = 0; i < pruseciky.size() - 1; i += 2) {
+				if (all.size() > 1) {
+					std::sort(all.begin(), all.end());
+					for (int i = 0; i < all.size() - 1; i += 2) {
 
-						int x1 = pruseciky[i];
-						int x2 = pruseciky[i + 1];
-						int z1 = zetka[i];
-						int z2 = zetka[i + 1];
-						
+						int x1 = std::get<0>(all[i]);
+						int x2 = std::get<0>(all[i + 1]);
+						float z1 = std::get<1>(all[i]);
+						float z2 = std::get<1>(all[i + 1]);
 
-						for (int j = x1 + 1; j <= x2; ++j) {
-							int z = (z1*(x2 - j) + z2 * (j - x1)) / (x2 - x1);
-							
+						for (int j = x1+1; j <= x2; ++j) {
 							if (depthTest) {
+								float z = (z1*(x2 - j) + z2 * (j - x1)) / (x2 - x1);
 								if (depthBuffer[y*width + j] > z) {
 									setPixel(j, y);
 									depthBuffer[y*width + j] = z;
@@ -625,7 +623,7 @@ public:
 							}													
 						}
 					}
-					pruseciky.clear();
+					all.clear();
 				}
 			}
 		}
@@ -688,7 +686,14 @@ public:
 	///		@param what[in] type of buffer to clear
 	///		@return SGL_NO_ERROR on successful clear, SGL_INVALID_VALUE otherwise
 	sglEErrorCode clearBuffer(unsigned what) {
-		if (what == SGL_COLOR_BUFFER_BIT) {
+		if (what == (SGL_COLOR_BUFFER_BIT | SGL_DEPTH_BUFFER_BIT)) {
+			for (int i = 0; i < width * height; i += 3) {
+				colorBuffer[i] = clearColor.r;
+				colorBuffer[i + 1] = clearColor.g;
+				colorBuffer[i + 2] = clearColor.b;
+				depthBuffer[i] = depthBuffer[i + 1] = depthBuffer[i + 2] = INFINITY;
+			}
+		} else if (what == SGL_COLOR_BUFFER_BIT) {
 			for (int i = 0; i < width * height; i += 3) {
 				colorBuffer[i] = clearColor.r;
 				colorBuffer[i + 1] = clearColor.g;
@@ -697,15 +702,7 @@ public:
 		}
 		else if (what == SGL_DEPTH_BUFFER_BIT) {
 			for (int i = 0; i < width * height; ++i) {
-				depthBuffer[i] = far;
-			}
-		}
-		else if (what == (SGL_COLOR_BUFFER_BIT | SGL_DEPTH_BUFFER_BIT)) {
-			for (int i = 0; i < width * height; i += 3) {
-				colorBuffer[i] = clearColor.r;
-				colorBuffer[i + 1] = clearColor.g;
-				colorBuffer[i + 2] = clearColor.b;
-				depthBuffer[i] = depthBuffer[i + 1] = depthBuffer[i + 2] = INFINITY;
+				depthBuffer[i] = INFINITY;
 			}
 		}
 		else {

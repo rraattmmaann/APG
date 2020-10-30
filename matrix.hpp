@@ -97,7 +97,7 @@ public:
 
 		for (unsigned int i = 0; i < height; i++) {  //i = rows
 			for (unsigned int j = 0; j < width; j++) {  //j = cols
-				m_data[i][j] = m[counter];
+				m_data[j][i] = m[counter];
 				++counter;
 			}
 		}
