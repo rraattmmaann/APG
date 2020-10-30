@@ -136,7 +136,12 @@ public:
 		float y2;
 		int steps = 40 * (to - from) / (2 * M_PI);
 
-		sglBegin(SGL_LINE_STRIP);
+		if (areaMode == SGL_FILL) {
+			sglBegin(SGL_POLYGON);
+			sglVertex3f(x, y, z);
+		}			
+		else
+			sglBegin(SGL_LINE_STRIP);
 
 		float alpha = (to - from) / steps;
 		float CA = cos(alpha);
@@ -169,6 +174,7 @@ public:
 			sglVertex3f(x, y, z);
 			sglEnd();
 		}
+
 		float x2, y2;
 		float alpha = 2 * M_PI / 40;
 		float x1 = 1;
@@ -176,7 +182,10 @@ public:
 		float CA = cos(alpha);
 		float SA = sin(alpha);
 
-		sglBegin(SGL_LINE_STRIP);
+		if (areaMode == SGL_FILL)
+			sglBegin(SGL_POLYGON);
+		else
+			sglBegin(SGL_LINE_STRIP);
 
 		for (int i = 0; i <= 40; i++) {
 			x2 = CA * x1 - SA * y1;
@@ -564,18 +573,20 @@ public:
 						getPruseciky(y, b, a, pruseciky);
 				}
 
-				std::sort(pruseciky.begin(), pruseciky.end());				
+								
+				if (pruseciky.size() > 1) {
+					std::sort(pruseciky.begin(), pruseciky.end());
+					for (int i = 0; i < pruseciky.size() - 1; i += 2) {
 
-				for (int i = 0; i < pruseciky.size()-1; i+=2) {
+						int x1 = pruseciky[i];
+						int x2 = pruseciky[i + 1];
 
-					int x1 = pruseciky[i];
-					int x2 = pruseciky[i+1];
-
-					for (int j = x1+1; j <= x2; ++j) {
-						setPixel(j,y);
+						for (int j = x1 + 1; j <= x2; ++j) {
+							setPixel(j, y);
+						}
 					}
+					pruseciky.clear();
 				}
-				pruseciky.clear();
 			}
 		}
 		else { // areaMode = SGL_LINE
