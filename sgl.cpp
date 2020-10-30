@@ -424,13 +424,13 @@ void sglRotateY(float angle) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	float sinus = sin(angle);
-	float cosinus = cos(angle);
+	float sinus = sin(-angle);
+	float cosinus = cos(-angle);
 
 	float rotate[] = {
-	cosinus,	0,	-sinus, 0,		// col 1
+	cosinus,	0,	sinus, 0,		// col 1
 	0,			1,		 0, 0,		// col 2
-	sinus,		0, cosinus, 0,		// col 3
+	-sinus,		0, cosinus, 0,		// col 3
 	0,			0,		 0, 1 };	// col 4
 
 	sglMultMatrix(rotate);
@@ -460,10 +460,13 @@ void sglFrustum(float left, float right, float bottom, float top, float near, fl
 	if (left == right || top == bottom || near == far || near < 0 || far < 0) { _libStatus = SGL_INVALID_VALUE; return; }
 
 	float flustrum[] = {
-	2 * near / (right - left), 0, (right + left) / (right - left), 0,	// col 1
-	0, 2 * near / (top - bottom), (top + bottom) / (top - bottom), 0,	// col 2
-	0, 0, (far + near) / (far - near), 2 * far * near / (far - near),	// col 3
-	0, 0, -1, 0	}; // col 4
+	2 * near / (right - left),	0,							(right + left) / (right - left),	0,	// col 1
+	0,							2 * near / (top - bottom),	(top + bottom) / (top - bottom),	0,	// col 2
+	0,							0,							-(far + near) / (far - near),		-2 * far * near / (far - near),	// col 3
+	0,							0,							-1,									0	}; // col 4
+
+	currentContext->viewport.m_data[0][1] = (far - near) / 2;
+	currentContext->viewport.m_data[1][1] = (far + near) / 2;
 
 	sglMultMatrix(flustrum);
 }
@@ -514,7 +517,7 @@ void sglEnable(sglEEnableFlags cap) {
 
 	if (cap != SGL_DEPTH_TEST) { _libStatus = SGL_INVALID_ENUM; return; }
 
-	currentContext->depthTest = cap;
+	currentContext->depthTest = true;
 }
 
 void sglDisable(sglEEnableFlags cap) {
@@ -523,7 +526,7 @@ void sglDisable(sglEEnableFlags cap) {
 
 	if (cap != SGL_DEPTH_TEST) { _libStatus = SGL_INVALID_ENUM; return; }
 
-	currentContext->depthTest = cap;
+	currentContext->depthTest = false;
 }
 
 //---------------------------------------------------------------------------

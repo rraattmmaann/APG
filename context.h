@@ -83,7 +83,7 @@ public:
 		this->height = height;
 		this->index = index;
 		colorBuffer = new float[width * height * 3];
-		viewport.width = 1;
+		viewport.width = 2;
 		viewport.height = 4;
 		viewport.makeIdentity();
 		depthBuffer = new float[width * height];
@@ -212,11 +212,12 @@ public:
 		}
 		Matrix MV = modelViewMatricesStack.back();
 		Matrix P = projectionMatricesStack.back();
-		Matrix matrix = P * MV;
+		Matrix matrix = P*MV;
 
 		// Compute the transformed circle center
 		Vertex stred(xs, ys, zs, 1);
-		Vertex res = (matrix * stred) * (1 / stred.m_data[3]);
+		Vertex res = (matrix * stred);
+		res = res * (1 / res.m_data[3]);
 		int stx = viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0];
 		int sty = viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0];
 
@@ -369,7 +370,8 @@ public:
 
 		for (Vertex vert : vertexBuffer) {
 
-			Vertex res = (matrix * vert) * (1 / vert.m_data[3]);
+			Vertex res = (matrix * vert);
+			res = res * (1 / res.m_data[3]);
 
 			int x = static_cast<int>(viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0]);
 			int y = static_cast<int>(viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0]);
@@ -403,8 +405,10 @@ public:
 		for (unsigned int i = 0; i < vertexBuffer.size(); i += 2) {
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
-			Vertex res1 = (matrix * v1) * (1 / v1.m_data[3]);
-			Vertex res2 = (matrix * v2) * (1 / v2.m_data[3]);
+			Vertex res1 = (matrix * v1);
+			res1 = res1 * (1 / res1.m_data[3]);
+			Vertex res2 = (matrix * v2);
+			res2 = res2 * (1 / res2.m_data[3]);
 
 			bresenhamLine(
 				viewport.m_data[0][0] * res1.m_data[0] + viewport.m_data[2][0],
@@ -423,8 +427,10 @@ public:
 
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
-			Vertex res1 = (matrix * v1) * (1 / v1.m_data[3]);
-			Vertex res2 = (matrix * v2) * (1 / v2.m_data[3]);
+			Vertex res1 = (matrix * v1);
+			res1 = res1 * (1 / res1.m_data[3]);
+			Vertex res2 = (matrix * v2);
+			res2 = res2 * (1 / res2.m_data[3]);
 
 			bresenhamLine(
 				viewport.m_data[0][0] * res1.m_data[0] + viewport.m_data[2][0],
@@ -444,7 +450,8 @@ public:
 		Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
 		Vertex vert = vertexBuffer[0];
-		Vertex res = (matrix * vert) * (1 / vert.m_data[3]);
+		Vertex res = (matrix * vert);
+		res = res * (1 / res.m_data[3]);
 
 		int startx = viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0];
 		int starty = viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0];
@@ -454,8 +461,10 @@ public:
 		for (unsigned int i = 0; i < vertexBuffer.size() - 1; i++) {
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
-			Vertex res1 = (matrix * v1) * (1 / v1.m_data[3]);
-			Vertex res2 = (matrix * v2) * (1 / v2.m_data[3]);
+			Vertex res1 = (matrix * v1);
+			res1 = res1 * (1 / res1.m_data[3]);
+			Vertex res2 = (matrix * v2);
+			res2 = res2 * (1 / res2.m_data[3]);
 
 			bresenhamLine(
 				viewport.m_data[0][0] * res1.m_data[0] + viewport.m_data[2][0],
@@ -467,7 +476,8 @@ public:
 		}
 
 		Vertex vert2 = vertexBuffer[length];
-		Vertex res2 = (matrix * vert2) * (1 / vert2.m_data[3]);
+		Vertex res2 = (matrix * vert2);
+		res2 = res2 * (1 / res2.m_data[3]);
 
 		int endx = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
 		int endy = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
@@ -475,14 +485,20 @@ public:
 		bresenhamLine(endx, startx, endy, starty);
 	}
 
-	void getPruseciky(int y, Vertex &a, Vertex &b, std::vector<int> &pruseciky) {
+	void getPruseciky(int y, Vertex &a, Vertex &b, std::vector<int> &pruseciky, std::vector<int> &zetka) {
 		int x1 = a.m_data[0];
 		int y1 = a.m_data[1];
 		int x2 = b.m_data[0];		
 		int y2 = b.m_data[1];
+		int z1 = a.m_data[2];
+		int z2 = b.m_data[2];
+		int z = (z1*(y2 - y) + z2 * (y - y1)) / (y2 - y1);
 
 		if (x2-x1 == 0) {
 			pruseciky.push_back(x1);
+
+			
+			zetka.push_back(1/z);
 			return;
 		}
 
@@ -494,6 +510,7 @@ public:
 		// dosadime za y promenou y xd
 		int x = (y - shift) / slope;
 		pruseciky.push_back(x);
+		zetka.push_back(1/z);
 	}
 
 	/// Draws polygon, filling depends on the currently set area mode
@@ -510,25 +527,31 @@ public:
 			Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
 			Vertex vert = vertexBuffer[0];
-			Vertex res = (matrix * vert) * (1 / vert.m_data[3]);
+			Vertex res = (matrix * vert);
+			res = res * (1 / res.m_data[3]);
 
 			int startx = viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0];
 			int starty = viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0];
+			int startz = viewport.m_data[0][1] * res.m_data[2] + viewport.m_data[1][1];
 
 			int length = 0;
 
 			for (unsigned int i = 0; i < vertexBuffer.size() - 1; i++) {
 				Vertex v1 = vertexBuffer[i];
 				Vertex v2 = vertexBuffer[i + 1];
-				Vertex res1 = (matrix * v1) * (1 / v1.m_data[3]);
-				Vertex res2 = (matrix * v2) * (1 / v2.m_data[3]);
+				Vertex res1 = (matrix * v1);
+				res1 = res1 * (1 / res1.m_data[3]);
+				Vertex res2 = (matrix * v2);
+				res2 = res2 * (1 / res2.m_data[3]);
 
 				int x1 = viewport.m_data[0][0] * res1.m_data[0] + viewport.m_data[2][0];
 				int x2 = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
 				int y1 = viewport.m_data[1][0] * res1.m_data[1] + viewport.m_data[3][0];
 				int y2 = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
-				screenSpaceVertices.push_back(Vertex(x1, y1, 0, 1));
-				screenSpaceVertices.push_back(Vertex(x2, y2, 0, 1));
+				int z1 = viewport.m_data[0][1] * res1.m_data[2] + viewport.m_data[1][1];
+				int z2 = viewport.m_data[0][1] * res2.m_data[2] + viewport.m_data[1][1];
+				screenSpaceVertices.push_back(Vertex(x1, y1, z1, 1));
+				screenSpaceVertices.push_back(Vertex(x2, y2, z2, 1));
 				length++;
 
 				yMax = std::max(std::max(y1, y2), yMax);
@@ -536,18 +559,22 @@ public:
 			}
 
 			Vertex vert2 = vertexBuffer[length];
-			Vertex res2 = (matrix * vert2) * (1 / vert2.m_data[3]);
+			Vertex res2 = (matrix * vert2);
+			res2 = res2 * (1 / res2.m_data[3]);
 
 			int endx = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
 			int endy = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
-			
-			screenSpaceVertices.push_back(Vertex(endx, endy, 0, 1));
-			screenSpaceVertices.push_back(Vertex(startx, starty, 0, 1));
+			int endz = viewport.m_data[0][1] * res2.m_data[2] + viewport.m_data[1][1];
+
+			screenSpaceVertices.push_back(Vertex(endx, endy, endz, 1));
+			screenSpaceVertices.push_back(Vertex(startx, starty, startz, 1));
 
 
 			for (int y = yMax; y > yMin; --y) {
 				std::vector<int> pruseciky;
 				pruseciky.reserve(screenSpaceVertices.size() / 2);
+				std::vector<int> zetka;
+				zetka.reserve(screenSpaceVertices.size() / 2);
 
 				for (int i = 0; i < screenSpaceVertices.size(); i+=2) {
 
@@ -568,9 +595,9 @@ public:
 					if (y < y1 && y <= y2) continue;
 
 					if (y1 > y2)
-						getPruseciky(y, a, b, pruseciky);
+						getPruseciky(y, a, b, pruseciky, zetka);
 					else
-						getPruseciky(y, b, a, pruseciky);
+						getPruseciky(y, b, a, pruseciky, zetka);
 				}
 
 								
@@ -580,9 +607,22 @@ public:
 
 						int x1 = pruseciky[i];
 						int x2 = pruseciky[i + 1];
+						int z1 = zetka[i];
+						int z2 = zetka[i + 1];
+						
 
 						for (int j = x1 + 1; j <= x2; ++j) {
-							setPixel(j, y);
+							int z = (z1*(x2 - j) + z2 * (j - x1)) / (x2 - x1);
+							
+							if (depthTest) {
+								if (depthBuffer[y*width + j] > z) {
+									setPixel(j, y);
+									depthBuffer[y*width + j] = z;
+								}
+							}
+							else {
+								setPixel(j, y);
+							}													
 						}
 					}
 					pruseciky.clear();
@@ -665,7 +705,7 @@ public:
 				colorBuffer[i] = clearColor.r;
 				colorBuffer[i + 1] = clearColor.g;
 				colorBuffer[i + 2] = clearColor.b;
-				depthBuffer[i] = depthBuffer[i + 1] = depthBuffer[i + 2] = far;
+				depthBuffer[i] = depthBuffer[i + 1] = depthBuffer[i + 2] = INFINITY;
 			}
 		}
 		else {

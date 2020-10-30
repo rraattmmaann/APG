@@ -20,7 +20,7 @@ public:
 		width(_width), height(_height) {}
 
 	/// Default matrix constructor - we are using 4x4 matrices
-	Matrix() : width(4), height(4) {};
+	Matrix() : width(4), height(4) { };
 
 	/// Matrix Copy constructor
 	Matrix(const Matrix& rhs) :
