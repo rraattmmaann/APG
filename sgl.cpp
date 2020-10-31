@@ -217,15 +217,15 @@ void sglEnd(void) {
 }
 
 void sglVertex4f(float x, float y, float z, float w) {
-	currentContext->addVertex(x, y, z, w);
+	currentContext->vertexBuffer.emplace_back(Vertex(x, y, z, w));
 }
 
 void sglVertex3f(float x, float y, float z) {
-	currentContext->addVertex(x, y, z, 1);
+	currentContext->vertexBuffer.emplace_back(Vertex(x, y, z, 1));
 }
 
 void sglVertex2f(float x, float y) {
-	currentContext->addVertex(x, y, 0, 1);
+	currentContext->vertexBuffer.emplace_back(Vertex(x, y, 0, 1));
 }
 
 void sglCircle(float x, float y, float z, float radius) {
@@ -450,8 +450,6 @@ void sglOrtho(float left, float right, float bottom, float top, float near, floa
 	-(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1 };	// col 4
 
 	sglMultMatrix(ortho);
-
-	currentContext->far = far;
 }
 
 void sglFrustum(float left, float right, float bottom, float top, float near, float far) {

@@ -34,9 +34,6 @@ public:
 	/// Depth buffer
 	float* depthBuffer;
 
-	/// Current value of the far projection plane, used for depth buffer clearing
-	float far;
-
 	/// Current viewport matrix
 	Matrix viewport;
 
@@ -95,9 +92,9 @@ public:
 		drawingColor.r = 1;
 		drawingColor.g = 1;
 		drawingColor.b = 1;
-		vertexBuffer.reserve(width*height);
-		modelViewMatricesStack.reserve(5);
-		projectionMatricesStack.reserve(5);
+		//vertexBuffer.reserve(width*height);
+		//modelViewMatricesStack.reserve(5);
+		//projectionMatricesStack.reserve(5);
 	}
 
 	/// Default Context destructor
@@ -113,14 +110,6 @@ public:
 	}
 
 	/* --- FUNCTIONS --- */
-	/// Creates and adds a vertex with specified coordidinates to the vertex buffer
-	///		@param x[in] vertex x coordinate
-	///		@param y[in] vertex y coordinate
-	///		@param z[in] vertex z coordinate
-	///		@param w[in] vertex w coordinate
-	void addVertex(float x, float y, float z, float w) {
-		vertexBuffer.emplace_back(Vertex(x, y, z, w));
-	}
 
 	/// Computes vertex positions for an Arc
 	///		@param x [in] circle center x coordinate
@@ -234,8 +223,8 @@ public:
 
 			// pomocne promenne
 			int to = (sty + round(r));
-			auto sqrtContent = (r*r);
-			auto outerContent = stx + 0.5f;
+			float sqrtContent = (r*r);
+			float outerContent = stx + 0.5f;
 
 			for (int count = (sty - r); count <= to; ++count) {
 				/*
@@ -552,6 +541,7 @@ public:
 			int yMax = 0;
 			int yMin = height;
 
+			// Get all screenspace vertices first
 			Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
 			Vertex v = vertexBuffer[0];
@@ -572,14 +562,21 @@ public:
 				v2 = (matrix * v2);
 				v2 = v2 * (1 / v2.m_data[3]);
 
-				int x1 = viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0];
-				int x2 = viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0];
 				int y1 = viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0];
 				int y2 = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
-				float z1 = viewport.m_data[0][1] * v1.m_data[2] + viewport.m_data[1][1];
-				float z2 = viewport.m_data[0][1] * v2.m_data[2] + viewport.m_data[1][1];
-				screenSpaceVertices.emplace_back(Vertex(x1, y1, z1, 1));
-				screenSpaceVertices.emplace_back(Vertex(x2, y2, z2, 1));
+				
+				screenSpaceVertices.emplace_back(Vertex(
+					viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
+					y1,
+					viewport.m_data[0][1] * v1.m_data[2] + viewport.m_data[1][1],
+					1)
+				);
+				screenSpaceVertices.emplace_back(Vertex(
+					viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
+						y2, 
+					viewport.m_data[0][1] * v2.m_data[2] + viewport.m_data[1][1],
+						1)
+				);
 				length++;
 
 				yMax = std::max(std::max(y1, y2), yMax);
@@ -597,6 +594,7 @@ public:
 			screenSpaceVertices.emplace_back(Vertex(endx, endy, endz, 1));
 			screenSpaceVertices.emplace_back(Vertex(startx, starty, startz, 1));
 
+			// Run the scanline algorithm on the screenspace vertices
 			for (int y = yMax; y > yMin; --y) {
 				std::vector<std::tuple<int, float>> intersectionsDepth;
 				std::vector<int> intersections;
@@ -615,16 +613,13 @@ public:
 						y2 = tmp;
 					}
 
-					if (y1 == y2) continue;
-					if (y > y1 && y > y2) continue;
-					if (y < y1 && y <= y2) continue;
+					if (y1 == y2 || (y > y1 && y > y2) || (y < y1 && y <= y2)) continue;
 
 					if (y1 > y2)
 						(depthTest) ? getIntersectionsDepth(y, a, b, intersectionsDepth) : getIntersections(y, a, b, intersections);
 					else
 						(depthTest) ? getIntersectionsDepth(y, b, a, intersectionsDepth) : getIntersections(y, b, a, intersections);
 				}
-
 								
 				if (intersections.size() > 1 || intersectionsDepth.size() > 1) {
 
@@ -637,15 +632,16 @@ public:
 							float z1 = std::get<1>(intersectionsDepth[i]);
 							float z2 = std::get<1>(intersectionsDepth[i + 1]);
 
+							float temp = (x2*z1 - z2 * x1);
+
 							for (int j = x1 + 1; j <= x2; ++j) {
-								float z = (z1*(x2 - j) + z2 * (j - x1)) / (x2 - x1);
+								float z = (z2*j - z1*j + temp) / (x2 - x1);
 								if (depthBuffer[y*width + j] > z) {
 									setPixel(j, y);
 									depthBuffer[y*width + j] = z;
 								}
 							}
 						}
-						//intersectionsDepth.clear();
 					}
 					else {
 						std::sort(intersections.begin(), intersections.end());
@@ -658,7 +654,6 @@ public:
 								setPixel(j, y);
 							}
 						}
-						//intersections.clear();
 					}					
 				}
 			}
