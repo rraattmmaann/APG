@@ -96,8 +96,8 @@ public:
 		drawingColor.g = 1;
 		drawingColor.b = 1;
 		vertexBuffer.reserve(width*height);
-		modelViewMatricesStack.reserve(32);
-		projectionMatricesStack.reserve(10);
+		modelViewMatricesStack.reserve(5);
+		projectionMatricesStack.reserve(5);
 	}
 
 	/// Default Context destructor
@@ -119,8 +119,7 @@ public:
 	///		@param z[in] vertex z coordinate
 	///		@param w[in] vertex w coordinate
 	void addVertex(float x, float y, float z, float w) {
-		Vertex m(x, y, z, w);
-		vertexBuffer.emplace_back(m);
+		vertexBuffer.emplace_back(Vertex(x, y, z, w));
 	}
 
 	/// Computes vertex positions for an Arc
@@ -218,10 +217,10 @@ public:
 
 		// Compute the transformed circle center
 		Vertex stred(xs, ys, zs, 1);
-		Vertex res = (matrix * stred);
-		res = res * (1 / res.m_data[3]);
-		int stx = viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0];
-		int sty = viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0];
+		stred = (matrix * stred);
+		stred = stred * (1 / stred.m_data[3]);
+		int stx = viewport.m_data[0][0] * stred.m_data[0] + viewport.m_data[2][0];
+		int sty = viewport.m_data[1][0] * stred.m_data[1] + viewport.m_data[3][0];
 
 		// Compute the transformed radius
 		float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
@@ -232,6 +231,7 @@ public:
 			// souradnice bodu na kruhu
 			int x1;
 			int x2;
+
 			// pomocne promenne
 			int to = (sty + round(r));
 			auto sqrtContent = (r*r);
@@ -406,16 +406,16 @@ public:
 		for (unsigned int i = 0; i < vertexBuffer.size(); i += 2) {
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
-			Vertex res1 = (matrix * v1);
-			res1 = res1 * (1 / res1.m_data[3]);
-			Vertex res2 = (matrix * v2);
-			res2 = res2 * (1 / res2.m_data[3]);
+			v1 = (matrix * v1);
+			v1 = v1 * (1 / v1.m_data[3]);
+			v2 = (matrix * v2);
+			v2 = v2 * (1 / v2.m_data[3]);
 
 			bresenhamLine(
-				viewport.m_data[0][0] * res1.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[1][0] * res1.m_data[1] + viewport.m_data[3][0],
-				viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0]
+				viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
+				viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
+				viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0],
+				viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0]
 			);
 		}
 	}
@@ -428,16 +428,16 @@ public:
 
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
-			Vertex res1 = (matrix * v1);
-			res1 = res1 * (1 / res1.m_data[3]);
-			Vertex res2 = (matrix * v2);
-			res2 = res2 * (1 / res2.m_data[3]);
+			v1 = (matrix * v1);
+			v1 = v1 * (1 / v1.m_data[3]);
+			v2 = (matrix * v2);
+			v2 = v2 * (1 / v2.m_data[3]);
 
 			bresenhamLine(
-				viewport.m_data[0][0] * res1.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[1][0] * res1.m_data[1] + viewport.m_data[3][0],
-				viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0]
+				viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
+				viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
+				viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0],
+				viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0]
 			);
 		}
 	}
@@ -450,53 +450,55 @@ public:
 
 		Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
-		Vertex vert = vertexBuffer[0];
-		Vertex res = (matrix * vert);
-		res = res * (1 / res.m_data[3]);
+		Vertex v = vertexBuffer[0];
+		v = (matrix * v);
+		v = v * (1 / v.m_data[3]);
 
-		int startx = viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0];
-		int starty = viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0];
+		int startx = viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0];
+		int starty = viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0];
 
 		int length = 0;
 
 		for (unsigned int i = 0; i < vertexBuffer.size() - 1; i++) {
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
-			Vertex res1 = (matrix * v1);
-			res1 = res1 * (1 / res1.m_data[3]);
-			Vertex res2 = (matrix * v2);
-			res2 = res2 * (1 / res2.m_data[3]);
+			v1 = (matrix * v1);
+			v1 = v1 * (1 / v1.m_data[3]);
+			v2 = (matrix * v2);
+			v2 = v2 * (1 / v2.m_data[3]);
 
 			bresenhamLine(
-				viewport.m_data[0][0] * res1.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[1][0] * res1.m_data[1] + viewport.m_data[3][0],
-				viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0]
+				viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
+				viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
+				viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0],
+				viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0]
 			);
 			length++;
 		}
 
-		Vertex vert2 = vertexBuffer[length];
-		Vertex res2 = (matrix * vert2);
-		res2 = res2 * (1 / res2.m_data[3]);
+		Vertex v2 = vertexBuffer[length];
+		v2 = (matrix * v2);
+		v2 = v2 * (1 / v2.m_data[3]);
 
-		int endx = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
-		int endy = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
+		int endx = viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0];
+		int endy = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
 
 		bresenhamLine(endx, startx, endy, starty);
 	}
 
-	void getPruseciky(int y, Vertex &a, Vertex &b, std::vector<std::tuple<int, float>> &pruseciky) {
+	/// Finds intersection in the x axis in height of y on line between vertices a and b
+	///		@param y[in] current height of the scanline
+	///		@param a[in] bottom end of the edge
+	///		@param b[in] upper end of the edge
+	///		@param intersections[in] vector of x-coordinates of all found intersections
+	void getIntersections(int y, Vertex &a, Vertex &b, std::vector<int> &intersections) {
 		int x1 = a.m_data[0];
 		int y1 = a.m_data[1];
 		int x2 = b.m_data[0];		
 		int y2 = b.m_data[1];
-		float z1 = a.m_data[2];
-		float z2 = b.m_data[2];
-		float z = (z1*(y2 - y) + z2 * (y - y1)) / (y2 - y1);
 
 		if (x2-x1 == 0) {
-			pruseciky.push_back(std::make_tuple(x1,z));
+			intersections.emplace_back(x1);
 			return;
 		}
 
@@ -507,7 +509,37 @@ public:
 		// y = slope * x + shift
 		// dosadime za y promenou y xd
 		int x = (y - shift) / slope;
-		pruseciky.push_back(std::make_tuple(x, z));
+		intersections.emplace_back(x);
+	}
+
+	/// Finds intersection in the x axis in height of y on line between vertices a and b
+	/// Computes the z value of the intersection as well
+	///		@param y[in] current height of the scanline
+	///		@param a[in] bottom end of the edge
+	///		@param b[in] upper end of the edge
+	///		@param intersections[in] vector of couple (x-coordinate, depth) of all found intersections
+	void getIntersectionsDepth(int y, Vertex &a, Vertex &b, std::vector<std::tuple<int, float>> &intersections) {
+		int x1 = a.m_data[0];
+		int y1 = a.m_data[1];
+		int x2 = b.m_data[0];
+		int y2 = b.m_data[1];
+		float z1 = a.m_data[2];
+		float z2 = b.m_data[2];
+		float z = (z1*(y2 - y) + z2 * (y - y1)) / (y2 - y1);
+
+		if (x2 - x1 == 0) {
+			intersections.emplace_back(std::make_tuple(x1, z));
+			return;
+		}
+
+		float slope = (float)(y2 - y1) / (float)(x2 - x1);
+
+		float shift = y1 - slope * x1;
+
+		// y = slope * x + shift
+		// dosadime za y promenou y xd
+		int x = (y - shift) / slope;
+		intersections.emplace_back(std::make_tuple(x, z));
 	}
 
 	/// Draws polygon, filling depends on the currently set area mode
@@ -517,64 +549,57 @@ public:
 		if (areaMode == SGL_FILL) {
 
 			std::vector<Vertex> screenSpaceVertices;
-			screenSpaceVertices.reserve(vertexBuffer.size());
 			int yMax = 0;
 			int yMin = height;
 
 			Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
-			/*Matrix 
-			for (unsigned int i = 0; i < height; i++) {
-				for (unsigned int j = 0; j < width; j++) {
-					transposed.m_data[j][i] = m_data[i][j];
-				}
-			}*/
 
-			Vertex vert = vertexBuffer[0];
-			Vertex res = (matrix * vert);
-			res = res * (1 / res.m_data[3]);
+			Vertex v = vertexBuffer[0];
+			v = (matrix * v);
+			v = v * (1 / v.m_data[3]);
 
-			int startx = viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0];
-			int starty = viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0];
-			float startz = viewport.m_data[0][1] * res.m_data[2] + viewport.m_data[1][1];
+			int startx = viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0];
+			int starty = viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0];
+			float startz = viewport.m_data[0][1] * v.m_data[2] + viewport.m_data[1][1];
 
 			int length = 0;
 
 			for (unsigned int i = 0; i < vertexBuffer.size() - 1; i++) {
 				Vertex v1 = vertexBuffer[i];
 				Vertex v2 = vertexBuffer[i + 1];
-				Vertex res1 = (matrix * v1);
-				res1 = res1 * (1 / res1.m_data[3]);
-				Vertex res2 = (matrix * v2);
-				res2 = res2 * (1 / res2.m_data[3]);
+				v1 = (matrix * v1);
+				v1 = v1 * (1 / v1.m_data[3]);
+				v2 = (matrix * v2);
+				v2 = v2 * (1 / v2.m_data[3]);
 
-				int x1 = viewport.m_data[0][0] * res1.m_data[0] + viewport.m_data[2][0];
-				int x2 = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
-				int y1 = viewport.m_data[1][0] * res1.m_data[1] + viewport.m_data[3][0];
-				int y2 = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
-				float z1 = viewport.m_data[0][1] * res1.m_data[2] + viewport.m_data[1][1];
-				float z2 = viewport.m_data[0][1] * res2.m_data[2] + viewport.m_data[1][1];
-				screenSpaceVertices.push_back(Vertex(x1, y1, z1, 1));
-				screenSpaceVertices.push_back(Vertex(x2, y2, z2, 1));
+				int x1 = viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0];
+				int x2 = viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0];
+				int y1 = viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0];
+				int y2 = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
+				float z1 = viewport.m_data[0][1] * v1.m_data[2] + viewport.m_data[1][1];
+				float z2 = viewport.m_data[0][1] * v2.m_data[2] + viewport.m_data[1][1];
+				screenSpaceVertices.emplace_back(Vertex(x1, y1, z1, 1));
+				screenSpaceVertices.emplace_back(Vertex(x2, y2, z2, 1));
 				length++;
 
 				yMax = std::max(std::max(y1, y2), yMax);
 				yMin = std::min(std::min(y1, y2), yMin);
 			}
 
-			Vertex vert2 = vertexBuffer[length];
-			Vertex res2 = (matrix * vert2);
-			res2 = res2 * (1 / res2.m_data[3]);
+			Vertex v2 = vertexBuffer[length];
+			v2 = (matrix * v2);
+			v2 = v2 * (1 / v2.m_data[3]);
 
-			int endx = viewport.m_data[0][0] * res2.m_data[0] + viewport.m_data[2][0];
-			int endy = viewport.m_data[1][0] * res2.m_data[1] + viewport.m_data[3][0];
-			float endz = viewport.m_data[0][1] * res2.m_data[2] + viewport.m_data[1][1];
+			int endx = viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0];
+			int endy = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
+			float endz = viewport.m_data[0][1] * v2.m_data[2] + viewport.m_data[1][1];
 
-			screenSpaceVertices.push_back(Vertex(endx, endy, endz, 1));
-			screenSpaceVertices.push_back(Vertex(startx, starty, startz, 1));
-
+			screenSpaceVertices.emplace_back(Vertex(endx, endy, endz, 1));
+			screenSpaceVertices.emplace_back(Vertex(startx, starty, startz, 1));
 
 			for (int y = yMax; y > yMin; --y) {
-				std::vector<std::tuple<int, float>> all;
+				std::vector<std::tuple<int, float>> intersectionsDepth;
+				std::vector<int> intersections;
 
 				for (int i = 0; i < screenSpaceVertices.size(); i+=2) {
 
@@ -595,35 +620,46 @@ public:
 					if (y < y1 && y <= y2) continue;
 
 					if (y1 > y2)
-						getPruseciky(y, a, b, all);
+						(depthTest) ? getIntersectionsDepth(y, a, b, intersectionsDepth) : getIntersections(y, a, b, intersections);
 					else
-						getPruseciky(y, b, a, all);
+						(depthTest) ? getIntersectionsDepth(y, b, a, intersectionsDepth) : getIntersections(y, b, a, intersections);
 				}
 
 								
-				if (all.size() > 1) {
-					std::sort(all.begin(), all.end());
-					for (int i = 0; i < all.size() - 1; i += 2) {
+				if (intersections.size() > 1 || intersectionsDepth.size() > 1) {
 
-						int x1 = std::get<0>(all[i]);
-						int x2 = std::get<0>(all[i + 1]);
-						float z1 = std::get<1>(all[i]);
-						float z2 = std::get<1>(all[i + 1]);
+					if (depthTest) {
+						std::sort(intersectionsDepth.begin(), intersectionsDepth.end());
+						for (int i = 0; i < intersectionsDepth.size() - 1; i += 2) {
 
-						for (int j = x1+1; j <= x2; ++j) {
-							if (depthTest) {
+							int x1 = std::get<0>(intersectionsDepth[i]);
+							int x2 = std::get<0>(intersectionsDepth[i + 1]);
+							float z1 = std::get<1>(intersectionsDepth[i]);
+							float z2 = std::get<1>(intersectionsDepth[i + 1]);
+
+							for (int j = x1 + 1; j <= x2; ++j) {
 								float z = (z1*(x2 - j) + z2 * (j - x1)) / (x2 - x1);
 								if (depthBuffer[y*width + j] > z) {
 									setPixel(j, y);
 									depthBuffer[y*width + j] = z;
 								}
 							}
-							else {
-								setPixel(j, y);
-							}													
 						}
+						//intersectionsDepth.clear();
 					}
-					all.clear();
+					else {
+						std::sort(intersections.begin(), intersections.end());
+						for (int i = 0; i < intersections.size() - 1; i += 2) {
+
+							int x1 = intersections[i];
+							int x2 = intersections[i + 1];
+
+							for (int j = x1 + 1; j <= x2; ++j) {
+								setPixel(j, y);
+							}
+						}
+						//intersections.clear();
+					}					
 				}
 			}
 		}
@@ -632,6 +668,7 @@ public:
 		}
 	}
 
+	/// Draws area light in the scene
 	void drawAreaLight() {
 		// TODO
 	}

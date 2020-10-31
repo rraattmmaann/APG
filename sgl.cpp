@@ -235,7 +235,6 @@ void sglCircle(float x, float y, float z, float radius) {
 	if (radius < 0) { _libStatus = SGL_INVALID_VALUE; return; }
 
 	currentContext->bresenhamCircle(x, y, z, radius);
-
 }
 
 void sglEllipse(float x, float y, float z, float a, float b) {
@@ -410,19 +409,14 @@ void sglRotate2D(float angle, float centerx, float centery) {
 	float sinus = sin(angle);
 	float cosinus = cos(angle);
 
-	// ALready multiplied transformation: x_res = T^-1 * R * T * x
-	/*float all[] = {
-		cosinus, -sinus, 0, -centerx * cosinus + centery * sinus + centerx, // col 1
-		sinus, cosinus, 0,  -centerx * sinus - centery * cosinus + centery, // col 2
-		0, 0, 1, 0, // col 3
-		0, 0, 0, 1
-	};// col 4*/
+	// Already multiplied transformation: x_res = T^-1 * R * T * x
+
 	float all[] = {
-		cosinus, sinus, 0, 0, // col 1
+		cosinus, sinus, 0, 0,	// col 1
 		-sinus, cosinus, 0,  0, // col 2
-		0, 0, 1, 0, // col 3
-		-centerx * cosinus + centery * sinus + centerx, -centerx * sinus - centery * cosinus + centery, 0, 1
-	};// col 4
+		0, 0, 1, 0,				// col 3
+		-centerx * cosinus + centery * sinus + centerx, -centerx * sinus - centery * cosinus + centery, 0, 1 // col 4
+	};
 
 	sglMultMatrix(all);
 }
@@ -449,12 +443,6 @@ void sglOrtho(float left, float right, float bottom, float top, float near, floa
 
 	if (left == right || top == bottom || near == far) { _libStatus = SGL_INVALID_VALUE; return; }
 
-	/*float ortho[] = {
-	2 / (right - left), 0, 0, -(right + left) / (right - left),	// col 1
-	0, 2 / (top - bottom), 0, -(top + bottom) / (top - bottom),	// col 2
-	0, 0, -2 / (far - near),  -(far + near) / (far - near),		// col 3
-	0, 0, 0, 1 };	// col 4*/
-
 	float ortho[] = {
 	2 / (right - left), 0, 0, 0,	// col 1
 	0, 2 / (top - bottom), 0, 0,	// col 2
@@ -470,21 +458,13 @@ void sglFrustum(float left, float right, float bottom, float top, float near, fl
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	if (left == right || top == bottom || near == far || near < 0 || far < 0) { _libStatus = SGL_INVALID_VALUE; return; }
-
-	/*float flustrum[] = {
-	2 * near / (right - left),	0,							(right + left) / (right - left),	0,	// col 1
-	0,							2 * near / (top - bottom),	(top + bottom) / (top - bottom),	0,	// col 2
-	0,							0,							-(far + near) / (far - near),		-2 * far * near / (far - near),	// col 3
-	0,							0,							-1,									0	}; // col 4*/
-
-	
+	if (left == right || top == bottom || near == far || near < 0 || far < 0) { _libStatus = SGL_INVALID_VALUE; return; }	
 
 	float flustrum[] = {
 	2 * near / (right - left),		0,							0,	0,	// col 1
 	0,								2 * near / (top - bottom),	0,	0,	// col 2
-	(right + left) / (right - left),							(top + bottom) / (top - bottom),	-(far + near) / (far - near),		-1,	// col 3
-	0,								0,							-2 * far * near / (far - near),									0 }; // col 4
+	(right + left) / (right - left),(top + bottom) / (top - bottom),	-(far + near) / (far - near),	-1,	// col 3
+	0,								0,							-2 * far * near / (far - near),		0 }; // col 4
 
 	currentContext->viewport.m_data[0][1] = (far - near) / 2;
 	currentContext->viewport.m_data[1][1] = (far + near) / 2;

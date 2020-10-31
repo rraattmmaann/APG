@@ -43,9 +43,6 @@ public:
 	///		@return resulting matrix
 	Matrix operator*(const Matrix& rhs) {
 
-		/*if (width != rhs.height)
-			throw std::invalid_argument("ERROR: Matrix dimensions do not correspond! Aborting multiplication.\n");*/
-
 		Matrix result(height, rhs.width);
 		float sum = 0;
 
@@ -116,7 +113,7 @@ public:
 
 	/// Function for move constructor
 	///		@param rhs[in] reference to the matrix with which data should be swapped 
-	void swap(Matrix& rhs) {
+	inline void swap(Matrix& rhs) {
 		std::swap(m_data, rhs.m_data);
 		std::swap(width, rhs.width);
 		std::swap(height, rhs.height);
