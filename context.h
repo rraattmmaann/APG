@@ -73,18 +73,18 @@ public:
 	Context() {}
 	
 	/// Custom Context constructor
-	///		@param width[in] width of the canvas
-	///		@param height[in] height of the canvas
-	///		@param index[in] the index of current context
-	Context(int width, int height, int index) {
-		this->width = width;
-		this->height = height;
-		this->index = index;
+	///		@param _width[in] width of the canvas
+	///		@param _height[in] height of the canvas
+	///		@param _index[in] the index of current context
+	Context(int _width, int _height, int _index) {
+		width = _width;
+		height = _height;
+		index = _index;
 		colorBuffer = new float[width * height * 3];
+		depthBuffer = new float[width * height];
 		viewport.width = 2;
 		viewport.height = 4;
-		viewport.makeIdentity();
-		depthBuffer = new float[width * height];
+		viewport.makeIdentity();		
 		depthTest = false;
 		clearColor.r = 0;
 		clearColor.g = 0;
@@ -92,15 +92,18 @@ public:
 		drawingColor.r = 1;
 		drawingColor.g = 1;
 		drawingColor.b = 1;
-		//vertexBuffer.reserve(width*height);
-		//modelViewMatricesStack.reserve(5);
-		//projectionMatricesStack.reserve(5);
+		clearBuffer((SGL_COLOR_BUFFER_BIT | SGL_DEPTH_BUFFER_BIT));
 	}
 
 	/// Default Context destructor
 	~Context() {
-		if (colorBuffer) delete[] colorBuffer;
-		if (depthBuffer) delete[] depthBuffer;
+		try {
+			if (colorBuffer) delete[] colorBuffer;
+			if (depthBuffer) delete[] depthBuffer;
+		}
+		catch (const std::exception& e) {
+			std::cout << e.what();
+		}		
 
 		vertexBuffer.shrink_to_fit();
 		projectionMatricesStack.clear();
@@ -108,7 +111,7 @@ public:
 		projectionMatricesStack.shrink_to_fit();
 		modelViewMatricesStack.shrink_to_fit();
 	}
-
+	
 	/* --- FUNCTIONS --- */
 
 	/// Computes vertex positions for an Arc
@@ -202,11 +205,10 @@ public:
 		}
 		Matrix MV = modelViewMatricesStack.back();
 		Matrix P = projectionMatricesStack.back();
-		Matrix matrix = P*MV;
 
 		// Compute the transformed circle center
 		Vertex stred(xs, ys, zs, 1);
-		stred = (matrix * stred);
+		stred = (P * (MV * stred));
 		stred = stred * (1 / stred.m_data[3]);
 		int stx = viewport.m_data[0][0] * stred.m_data[0] + viewport.m_data[2][0];
 		int sty = viewport.m_data[1][0] * stred.m_data[1] + viewport.m_data[3][0];
@@ -217,11 +219,10 @@ public:
 		r *= sqrt(MVscale * Pscale * viewportScale);
 		
 		if (areaMode == SGL_FILL) {
-			// souradnice bodu na kruhu
+
 			int x1;
 			int x2;
 
-			// pomocne promenne
 			int to = (sty + round(r));
 			float sqrtContent = (r*r);
 			float outerContent = stx + 0.5f;
@@ -356,11 +357,12 @@ public:
 
 	/// Takes all vertices from the vertex buffer and handles their rendering
 	void drawPoints() {
-		Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
+
+		Matrix PVM = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
 		for (Vertex vert : vertexBuffer) {
 
-			Vertex res = (matrix * vert);
+			Vertex res = PVM * vert;
 			res = res * (1 / res.m_data[3]);
 
 			int x = static_cast<int>(viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0]);
@@ -390,14 +392,14 @@ public:
 
 		if (vertexBuffer.size() % 2 > 0) return;
 
-		Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
+		Matrix PVM = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
 		for (unsigned int i = 0; i < vertexBuffer.size(); i += 2) {
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
-			v1 = (matrix * v1);
+			v1 = PVM * v1;
 			v1 = v1 * (1 / v1.m_data[3]);
-			v2 = (matrix * v2);
+			v2 = PVM * v2;
 			v2 = v2 * (1 / v2.m_data[3]);
 
 			bresenhamLine(
@@ -411,15 +413,16 @@ public:
 
 	/// Draws lines between each 2 vertices from the vertex buffer and handles their rendering
 	void drawLineStrip() {
-		Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
+
+		Matrix PVM = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
 		for (unsigned int i = 0; i < vertexBuffer.size() - 1; i++) {
 
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
-			v1 = (matrix * v1);
+			v1 = PVM * v1;
 			v1 = v1 * (1 / v1.m_data[3]);
-			v2 = (matrix * v2);
+			v2 = PVM * v2;
 			v2 = v2 * (1 / v2.m_data[3]);
 
 			bresenhamLine(
@@ -437,10 +440,10 @@ public:
 
 		if (vertexBuffer.size() == 0) return;
 
-		Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
+		Matrix PVM = projectionMatricesStack.back() * modelViewMatricesStack.back();
 
-		Vertex v = vertexBuffer[0];
-		v = (matrix * v);
+		Vertex v = vertexBuffer[0]; // Because of this access to the vertex buffer we need to check if it contains at least 1 alement
+		v = PVM * v;
 		v = v * (1 / v.m_data[3]);
 
 		int startx = viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0];
@@ -451,9 +454,9 @@ public:
 		for (unsigned int i = 0; i < vertexBuffer.size() - 1; i++) {
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
-			v1 = (matrix * v1);
+			v1 = PVM * v1;
 			v1 = v1 * (1 / v1.m_data[3]);
-			v2 = (matrix * v2);
+			v2 = PVM * v2;
 			v2 = v2 * (1 / v2.m_data[3]);
 
 			bresenhamLine(
@@ -466,7 +469,7 @@ public:
 		}
 
 		Vertex v2 = vertexBuffer[length];
-		v2 = (matrix * v2);
+		v2 = PVM * v2;
 		v2 = v2 * (1 / v2.m_data[3]);
 
 		int endx = viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0];
@@ -480,7 +483,7 @@ public:
 	///		@param a[in] bottom end of the edge
 	///		@param b[in] upper end of the edge
 	///		@param intersections[in] vector of x-coordinates of all found intersections
-	void getIntersections(int y, Vertex &a, Vertex &b, std::vector<int> &intersections) {
+	inline void getIntersections(int y, Vertex &a, Vertex &b, std::vector<int> &intersections) {
 		int x1 = a.m_data[0];
 		int y1 = a.m_data[1];
 		int x2 = b.m_data[0];		
@@ -507,7 +510,7 @@ public:
 	///		@param a[in] bottom end of the edge
 	///		@param b[in] upper end of the edge
 	///		@param intersections[in] vector of couple (x-coordinate, depth) of all found intersections
-	void getIntersectionsDepth(int y, Vertex &a, Vertex &b, std::vector<std::tuple<int, float>> &intersections) {
+	inline void getIntersectionsDepth(int y, Vertex &a, Vertex &b, std::vector<std::tuple<int, float>> &intersections) {
 		int x1 = a.m_data[0];
 		int y1 = a.m_data[1];
 		int x2 = b.m_data[0];
@@ -541,25 +544,19 @@ public:
 			int yMax = 0;
 			int yMin = height;
 
-			// Get all screenspace vertices first
-			Matrix matrix = projectionMatricesStack.back() * modelViewMatricesStack.back();
+			std::vector<std::tuple<int, float>> intersectionsDepth;
+			std::vector<int> intersections;
 
-			Vertex v = vertexBuffer[0];
-			v = (matrix * v);
-			v = v * (1 / v.m_data[3]);
-
-			int startx = viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0];
-			int starty = viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0];
-			float startz = viewport.m_data[0][1] * v.m_data[2] + viewport.m_data[1][1];
-
+			Matrix PVM = projectionMatricesStack.back() * modelViewMatricesStack.back();
 			int length = 0;
-
+			
+			// Get all screenspace vertices of the polygon first
 			for (unsigned int i = 0; i < vertexBuffer.size() - 1; i++) {
 				Vertex v1 = vertexBuffer[i];
 				Vertex v2 = vertexBuffer[i + 1];
-				v1 = (matrix * v1);
+				v1 = PVM * v1;
 				v1 = v1 * (1 / v1.m_data[3]);
-				v2 = (matrix * v2);
+				v2 = PVM * v2;
 				v2 = v2 * (1 / v2.m_data[3]);
 
 				int y1 = viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0];
@@ -583,9 +580,17 @@ public:
 				yMin = std::min(std::min(y1, y2), yMin);
 			}
 
+			// Add first and the last vertex into the list
+			Vertex v = vertexBuffer[0];
+			v = PVM * v;
+			v = v * (1 / v.m_data[3]);
 			Vertex v2 = vertexBuffer[length];
-			v2 = (matrix * v2);
+			v2 = PVM * v2;
 			v2 = v2 * (1 / v2.m_data[3]);
+
+			int startx = viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0];
+			int starty = viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0];
+			float startz = viewport.m_data[0][1] * v.m_data[2] + viewport.m_data[1][1];		
 
 			int endx = viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0];
 			int endy = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
@@ -596,10 +601,11 @@ public:
 
 			// Run the scanline algorithm on the screenspace vertices
 			for (int y = yMax; y > yMin; --y) {
-				std::vector<std::tuple<int, float>> intersectionsDepth;
-				std::vector<int> intersections;
-
-				for (int i = 0; i < screenSpaceVertices.size(); i+=2) {
+				
+				// Find all intersections of the current scanline with the edges
+				// POZNAMKA: toto lze zrychlit predpocitanim hran a tedy i jejich smernic(kazda hrana je dana prinkou s predpisem y = ax + b)
+				//           protoze vypocet se stale opakuje pro kazdou uroven scanline
+				for (unsigned int i = 0; i < screenSpaceVertices.size(); i+=2) {
 
 					Vertex a = screenSpaceVertices[i];
 					Vertex b = screenSpaceVertices[i + 1];
@@ -620,12 +626,13 @@ public:
 					else
 						(depthTest) ? getIntersectionsDepth(y, b, a, intersectionsDepth) : getIntersections(y, b, a, intersections);
 				}
-								
+						
+				// Check for intersections
 				if (intersections.size() > 1 || intersectionsDepth.size() > 1) {
-
+					// Render with Z buffer
 					if (depthTest) {
 						std::sort(intersectionsDepth.begin(), intersectionsDepth.end());
-						for (int i = 0; i < intersectionsDepth.size() - 1; i += 2) {
+						for (unsigned int i = 0; i < intersectionsDepth.size() - 1; i += 2) {
 
 							int x1 = std::get<0>(intersectionsDepth[i]);
 							int x2 = std::get<0>(intersectionsDepth[i + 1]);
@@ -636,16 +643,18 @@ public:
 
 							for (int j = x1 + 1; j <= x2; ++j) {
 								float z = (z2*j - z1*j + temp) / (x2 - x1);
-								if (depthBuffer[y*width + j] > z) {
-									setPixel(j, y);
-									depthBuffer[y*width + j] = z;
+								int idx = y * width + j;
+								if (depthBuffer[idx] > z) {
+									depthBuffer[idx] = z;
+									setPixel(j, y);									
 								}
 							}
 						}
+						intersectionsDepth.clear();
 					}
-					else {
+					else { // Render without Z buffer
 						std::sort(intersections.begin(), intersections.end());
-						for (int i = 0; i < intersections.size() - 1; i += 2) {
+						for (unsigned int i = 0; i < intersections.size() - 1; i += 2) {
 
 							int x1 = intersections[i];
 							int x2 = intersections[i + 1];
@@ -654,6 +663,7 @@ public:
 								setPixel(j, y);
 							}
 						}
+						intersections.clear();
 					}					
 				}
 			}
@@ -671,7 +681,7 @@ public:
 	/// Places currently used color to the specifed position in the color buffer
 	///		@param x[in] pixel x coordinate
 	///		@param y[in] pixel y coordinate
-	void setPixel(int x, int y) {
+	inline void setPixel(int x, int y) {
 		if (y >= height || y < 0 || x < 0 || x > width) {
 			return;
 		}

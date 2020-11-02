@@ -17,10 +17,12 @@
 static sglEErrorCode _libStatus = SGL_NO_ERROR;
 
 /// SGL variables
+
 bool sglBeginEndRunning = false;
 bool sglBeginEndSceneRunning = false;
 bool popFlag = false;
 unsigned int maxStackSize = 100;
+// poznamka: zatim jsem vektor contextu nechal dynamicky alokovany
 std::vector<Context*> contexts;
 int contextCounter = 0;
 Context* currentContext;
@@ -102,23 +104,20 @@ int sglCreateContext(int width, int height) {
 		_libStatus = SGL_OUT_OF_MEMORY;
 		return -1;
 	}
-	contexts.push_back(thisContext);
+	contexts.emplace_back(thisContext);
 	contextCounter++;
 	return thisContext->index;
 }
 
 void sglDestroyContext(int id) {
 
-	if (currentContext->index == id) { _libStatus = SGL_INVALID_OPERATION; return; }
+	if (!currentContext) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	bool found = false;
 
-	iterContext it = contexts.begin();
-	iterContext et = contexts.end();
-	for (; it != et; ++it) {
-		int cont = (*it)->index;
-		if (cont == id) {
-			delete *(it);
+	for (unsigned int i = 0; i < contexts.size(); ++i) {
+		if (contexts[i]->index == id) {
+			delete contexts[i];
 			--contextCounter;
 			found = true;
 			break;
@@ -131,11 +130,9 @@ void sglSetContext(int id) {
 
 	bool found = false;
 
-	iterContext it = contexts.begin();
-	iterContext et = contexts.end();
-	for (; it != et; ++it) {
-		if (id == (*it)->index) {
-			currentContext = (*it);
+	for (unsigned int i = 0; i < contexts.size(); ++i) {
+		if (contexts[i]->index == id) {
+			currentContext = contexts[i];
 			found = true;
 			break;
 		}
@@ -144,7 +141,9 @@ void sglSetContext(int id) {
 }
 
 int sglGetContext(void) {
+
 	if (!currentContext) { _libStatus = SGL_INVALID_OPERATION; return -1; }
+
 	return currentContext->index;
 }
 
@@ -157,7 +156,7 @@ float *sglGetColorBufferPointer(void) {
 //---------------------------------------------------------------------------
 
 void sglClearColor(float r, float g, float b, float alpha) {
-	if (!currentContext || sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
+	if (sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	currentContext->clearColor.r = r;
 	currentContext->clearColor.g = g;
@@ -165,7 +164,7 @@ void sglClearColor(float r, float g, float b, float alpha) {
 }
 
 void sglClear(unsigned what) {
-	if (!currentContext || sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
+	if (sglBeginEndRunning) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	_libStatus = currentContext->clearBuffer(what);
 }
@@ -250,9 +249,12 @@ void sglArc(float x, float y, float z, float radius, float from, float to) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	if (radius < 0 || to < from) { _libStatus = SGL_INVALID_VALUE; return; }
+	float fromCanonic = fmod(from, 2 * M_PI);
+	float toCanonic = fmod(to, 2 * M_PI);
 
-	currentContext->approximationArc(x, y, z, radius, from, to);
+	if (radius < 0 || toCanonic < fromCanonic) { _libStatus = SGL_INVALID_VALUE; return; }
+
+	currentContext->approximationArc(x, y, z, radius, fromCanonic, toCanonic);
 }
 
 //---------------------------------------------------------------------------
