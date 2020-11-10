@@ -249,12 +249,17 @@ void sglArc(float x, float y, float z, float radius, float from, float to) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	float fromCanonic = fmod(from, 2 * M_PI);
-	float toCanonic = fmod(to, 2 * M_PI);
+	if (to >= 2 * M_PI) {
+		to = fmod(to, 2 * M_PI);
 
-	if (radius < 0 || toCanonic < fromCanonic) { _libStatus = SGL_INVALID_VALUE; return; }
+		if (to == 0.0f) to = 2 * M_PI;
+	}
 
-	currentContext->approximationArc(x, y, z, radius, fromCanonic, toCanonic);
+	if (from >= 2 * M_PI) from = fmod(from, 2 * M_PI);
+
+	if (radius < 0 || to < from) { _libStatus = SGL_INVALID_VALUE; return; }
+
+	currentContext->approximationArc(x, y, z, radius, from, to);
 }
 
 //---------------------------------------------------------------------------

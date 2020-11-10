@@ -733,7 +733,7 @@ public:
 				colorBuffer[i] = clearColor.r;
 				colorBuffer[i + 1] = clearColor.g;
 				colorBuffer[i + 2] = clearColor.b;
-				depthBuffer[i] = depthBuffer[i + 1] = depthBuffer[i + 2] = INFINITY;
+				depthBuffer[i] = depthBuffer[i+1] = depthBuffer[i+2] = INFINITY;
 			}
 		} else if (what == SGL_COLOR_BUFFER_BIT) {
 			for (int i = 0; i < width * height; i += 3) {
