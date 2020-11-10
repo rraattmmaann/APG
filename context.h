@@ -16,6 +16,53 @@ struct colorPixel {
 	float b;
 };
 
+struct material {
+	float r;
+	float g;
+	float b;
+	float kd;
+	float ks;
+	float shine;
+	float T;
+	float ior;
+};
+
+struct light {
+	float x;
+	float y;
+	float z;
+	float r;
+	float g;
+	float b;
+};
+
+struct emissiveMaterial {
+	float r;
+	float g;
+	float b;
+	float c0;
+	float c1;
+	float c2;
+};
+
+struct enviromentMap {
+	int width;
+	int height;
+	float *texels;
+};
+
+struct sphere {
+	float x;
+	float y;
+	float z;
+	float radius;
+};
+
+struct polygon {
+	Vertex a;
+	Vertex b;
+	Vertex c;
+};
 /// Holds all variables need fot the current context
 class Context {
 public:
@@ -67,6 +114,18 @@ public:
 
 	/// Vector of vertices, fills withing the glBegin() and glEnd() sequence
 	std::vector<Vertex> vertexBuffer;
+
+	std::vector<polygon> polygons;
+
+	std::vector<light> lights;
+
+	std::vector<emissiveMaterial> emmisiveMaterials;
+
+	std::vector<enviromentMap> enviromentMaps;
+
+	std::vector<sphere> spheres;
+
+	material currentMaterial;
 
 	/* --- CONSTRUCTORS & DESTRUCTORS --- */
 	/// Default Context constructor
@@ -677,6 +736,7 @@ public:
 	void drawAreaLight() {
 		// TODO
 	}
+	
 
 	/// Places currently used color to the specifed position in the color buffer
 	///		@param x[in] pixel x coordinate
@@ -751,5 +811,55 @@ public:
 			return SGL_INVALID_VALUE;
 		}
 		return SGL_NO_ERROR;
+	}
+
+	void startRt(){
+		
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				//x,y y nich bod ve 3D
+				//pošleme ray 
+			}
+		}
+
+	}
+
+	void storePolygons() {
+		
+		Matrix PVM = projectionMatricesStack.back() * modelViewMatricesStack.back();
+
+		polygon p;
+
+		Vertex v1 = vertexBuffer[0];
+		Vertex v2 = vertexBuffer[1];
+		Vertex v3 = vertexBuffer[2];
+		v1 = PVM * v1;
+		v1 = v1 * (1 / v1.m_data[3]);
+		v2 = PVM * v2;
+		v2 = v2 * (1 / v2.m_data[3]);
+		v3 = PVM * v3;
+		v3 = v3 * (1 / v3.m_data[3]);
+
+		//int y1 = viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0];
+		//int y2 = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
+		//int y3 = viewport.m_data[1][0] * v3.m_data[1] + viewport.m_data[3][0];
+		
+		/*p.a = Vertex(viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
+			y1,
+			viewport.m_data[0][1] * v1.m_data[2] + viewport.m_data[1][1],
+			1);
+		p.b = Vertex(viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
+			y2,
+			viewport.m_data[0][1] * v2.m_data[2] + viewport.m_data[1][1],
+			1);
+		p.c = Vertex(viewport.m_data[0][0] * v3.m_data[0] + viewport.m_data[2][0],
+			y3,
+			viewport.m_data[0][1] * v3.m_data[2] + viewport.m_data[1][1],
+			1);*/
+
+		p.a = v1;
+		p.b = v2;
+		p.c = v3;
+		currentContext->polygons.push_back(p);
 	}
 };
