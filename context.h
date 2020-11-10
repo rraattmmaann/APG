@@ -49,6 +49,27 @@ struct intersection {
 	Vertex position;
 	Vertex normal;
 	float distance = INFINITY;
+
+	intersection(const intersection& rhs) {
+		distance = rhs.distance;
+		position = rhs.position;
+		normal = rhs.normal;
+	}
+
+	intersection& operator=(const  intersection& rhs) {
+		intersection temp(rhs);
+		swap(temp);
+		return *this;
+	}
+
+	/* --- FUNCTIONS --- */
+	/// Function for move constructor
+	///		@param rhs[in] reference to the vertex with which data should be swapped 
+	void swap(intersection& rhs) {
+		std::swap(position, rhs.position);
+		std::swap(normal, rhs.normal);
+		std::swap(distance, rhs.distance);
+	}
 };
 
 struct enviromentMap {
