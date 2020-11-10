@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <tuple>
+#include <cmath>
 
 #include "sgl.h"
 #include "matrix.hpp"
@@ -83,17 +84,80 @@ struct ray {
 	Vertex dir;
 };
 
+float dot(Vertex a, Vertex b)
+{
+	float product = a.m_data[0] * b.m_data[0] + a.m_data[1] * b.m_data[1] + a.m_data[2] * b.m_data[2];
+	return product;
+}
+
+Vertex cross(Vertex a, Vertex b){
+	Vertex cross;
+	cross.m_data[0] = a.m_data[1] * b.m_data[2] - a.m_data[2] * b.m_data[1];
+	cross.m_data[1] = a.m_data[2] * b.m_data[0] - a.m_data[0] * b.m_data[2];
+	cross.m_data[2] = a.m_data[0] * b.m_data[1] - a.m_data[1] * b.m_data[0];
+
+	return cross;
+
+}
+
+Vertex normalize(Vertex a) {
+	float lenght = sqrt((a.m_data[0] * a.m_data[0]) + (a.m_data[1] * a.m_data[1]) + (a.m_data[2] * a.m_data[2]));
+	a.m_data[0] = a.m_data[0] / lenght;
+	a.m_data[1] = a.m_data[1] / lenght;
+	a.m_data[2] = a.m_data[2] / lenght;
+	return a;
+}
+
+Vertex minus(Vertex a, Vertex b) {
+	Vertex ret;
+	ret.m_data[0] = a.m_data[0] - b.m_data[0];
+	ret.m_data[1] = a.m_data[1] - b.m_data[1];
+	ret.m_data[2] = a.m_data[2] - b.m_data[2];
+	return ret;
+}
+
+
 struct sphere {
 	float x;
 	float y;
 	float z;
 	float radius;
 	unsigned int matIdx;
+	Vertex centre;
 
 	intersection intersects(ray &r) {
+		
+		centre.m_data[0] = x;
+		centre.m_data[1] = y;
+		centre.m_data[2] = z;
 		intersection Int;
+		//Vertex dist = r.origin - centre;
+		Vertex dist;
+		dist.m_data[0] = r.origin.m_data[0] - x;
+		dist.m_data[1] = r.origin.m_data[1] - y;
+		dist.m_data[2] = r.origin.m_data[2] - z;
 
+		Vertex normal;
 
+		float a = dot(r.dir, r.dir);
+		float b = 2.0 * dot(dist, r.dir);
+		float c = dot(dist, dist) - radius * radius;
+		float disc = b * b - 4 * a * c;
+		
+		float t = -1.0;
+		if (disc >= 0) {
+			t = (-b - sqrt(disc)) / (2.0 * a);
+			//mùže být t záporné?
+			Int.distance = t;
+			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
+			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
+			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
+			
+			normal.m_data[0] = Int.position.m_data[0] - x;
+			normal.m_data[1] = Int.position.m_data[1] - y;
+			normal.m_data[2] = Int.position.m_data[2] - z;
+			Int.normal = normalize(normal);
+		}
 
 		return Int;
 	}
@@ -107,12 +171,43 @@ struct polygon {
 	unsigned int matIdx;
 	bool matType;
 
+	/*
+	* https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+	*/
 	intersection intersects(ray &r) {
 		intersection Int;
 
+		Vertex edge1 = minus(b, a);
+		Vertex edge2 = minus(c, a);
+		Vertex h = cross(r.dir, edge2);
+		float A = dot(edge1, h);
+		if (A > -0.000001 && A < 0.000001) {
+			return Int;
+		}
+		float f = 1.0 / A;
+		Vertex s = minus(r.origin, a);
+		float u = f * dot(s, h);
+		if (u < 0.0 || u > 1.0) {
+			return Int;
+		}
+		Vertex q = cross(s, edge1);
+		float v = f * dot(r.dir, q);
+		if (v < 0.0 || u + v > 1.0) {
+			return Int;
+		}
+		
+		float t = f * dot(edge2, q);
+		if (t > 0.000001) {
+			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
+			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
+			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
+			//TODO spoèítat normálu
+		}
+		else {
 
 
-		return Int;
+			return Int;
+		}
 	}
 };
 
