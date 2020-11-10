@@ -556,7 +556,7 @@ void sglBeginScene() {
 
 void sglEndScene() {
 
-	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+	if (!sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	sglBeginEndSceneRunning = false;
 
@@ -567,30 +567,16 @@ void sglSphere(const float x,
 	const float z,
 	const float radius)
 {
-	if (sglBeginEndRunning || sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+	if (sglBeginEndRunning || !sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-
-	Matrix MV = currentContext->modelViewMatricesStack.back();
-	Matrix P = currentContext->projectionMatricesStack.back();
-
-	// Compute the transformed circle center
-	Vertex stred(x, y, z, 1);
-	stred = (P * (MV * stred));
-	stred = stred * (1 / stred.m_data[3]);
-	int stx = currentContext->viewport.m_data[0][0] * stred.m_data[0] + currentContext->viewport.m_data[2][0];
-	int sty = currentContext->viewport.m_data[1][0] * stred.m_data[1] + currentContext->viewport.m_data[3][0];
-
-	// Compute the transformed radius
-	float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
-	float Pscale = P.m_data[0][0] * P.m_data[1][1] - P.m_data[1][0] * P.m_data[0][1];
-	float r = radius * sqrt(MVscale * Pscale * currentContext->viewportScale);
 
 	sphere sp;
 
 	sp.x = x;
 	sp.y = y;
 	sp.z = z;
-	sp.radius = r;
+	sp.radius = radius;
+	sp.matIdx = currentContext->materials.size() - 1;
 
 	currentContext->spheres.push_back(sp);
 }
@@ -604,16 +590,16 @@ void sglMaterial(const float r,
 	const float T,
 	const float ior)
 {
-	material eM;
-	currentContext->currentMaterial.r = r;
-	currentContext->currentMaterial.g = g;
-	currentContext->currentMaterial.b = b;
-	currentContext->currentMaterial.kd = kd;
-	currentContext->currentMaterial.ks = ks;
-	currentContext->currentMaterial.shine = shine;
-	currentContext->currentMaterial.T = T;
-	currentContext->currentMaterial.ior = ior;
-
+	material em;
+	em.r = r;
+	em.g = g;
+	em.b = b;
+	em.kd = kd;
+	em.ks = ks;
+	em.shine = shine;
+	em.T = T;
+	em.ior = ior;
+	currentContext->materials.push_back(em);
 }
 
 void sglPointLight(const float x,
@@ -623,7 +609,7 @@ void sglPointLight(const float x,
 	const float g,
 	const float b)
 {
-	if (sglBeginEndRunning || sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+	if (sglBeginEndRunning || !sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	light eM;
 	eM.r = r;
@@ -678,5 +664,5 @@ void sglEmissiveMaterial(const float r,
 	eM.c2 = c2;
 
 	currentContext->emmisiveMaterials.push_back(eM);
-
+	currentContext->addingEmissiveMaterial = true;
 }

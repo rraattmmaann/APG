@@ -45,10 +45,21 @@ struct emissiveMaterial {
 	float c2;
 };
 
+struct intersection {
+	Vertex position;
+	Vertex normal;
+	float distance = INFINITY;
+};
+
 struct enviromentMap {
 	int width;
 	int height;
 	float *texels;
+};
+
+struct ray {
+	Vertex origin;
+	Vertex dir;
 };
 
 struct sphere {
@@ -56,13 +67,35 @@ struct sphere {
 	float y;
 	float z;
 	float radius;
+	unsigned int matIdx;
+
+	intersection intersects(ray &r) {
+		intersection Int;
+
+
+
+		return Int;
+	}
 };
 
 struct polygon {
 	Vertex a;
 	Vertex b;
 	Vertex c;
+	Vertex normal;
+	unsigned int matIdx;
+	bool matType;
+
+	intersection intersects(ray &r) {
+		intersection Int;
+
+
+
+		return Int;
+	}
 };
+
+
 /// Holds all variables need fot the current context
 class Context {
 public:
@@ -125,7 +158,9 @@ public:
 
 	std::vector<sphere> spheres;
 
-	material currentMaterial;
+	std::vector<material> materials;
+
+	bool addingEmissiveMaterial = false;
 
 	/* --- CONSTRUCTORS & DESTRUCTORS --- */
 	/// Default Context constructor
@@ -814,11 +849,68 @@ public:
 	}
 
 	void startRt(){
+
+		Matrix MV = modelViewMatricesStack.back();
+		Matrix P = projectionMatricesStack.back();
+
+		// transformovat body do world coords TODO
+
+		// vypocitat normaly polygonu TODO
+
+		// urcit paprsky TODO
 		
+		
+		// iff prunik -> vypocit osvetleni ze vsech point lights a nastavit barvu
+		// neni prunik -> barva pozadí
+		Vertex rayOrigin;
+		
+		// projit vsechny pixely a vrhat paprsky
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				//x,y y nich bod ve 3D
-				//pošleme ray 
+				
+				// urcit paprsky TODO
+				Vertex B = rayOrigin;
+
+				ray r;
+				r.origin = rayOrigin;
+				//r.dir = 
+				intersection bestInt;
+				polygon bestPolygon;
+				sphere bestSphere;
+				bool polygonWins = true;
+
+				// kazdy paprsek zkusit prunik se scenou
+				for (unsigned int i = 0; i < polygons.size(); ++i) {
+					intersection Int = polygons[i].intersects(r);
+					if (Int.distance < bestInt.distance) {
+						bestInt = Int;
+						bestPolygon = polygons[i];
+					}
+				}
+
+				for (unsigned int i = 0; i < spheres.size(); ++i) {
+					intersection Int = spheres[i].intersects(r);
+					if (Int.distance < bestInt.distance) {
+						bestInt = Int;
+						bestSphere = spheres[i];
+						polygonWins = false;
+					}
+				}
+
+				if (bestInt.distance < INFINITY) {
+					// nalezli jsme prusecik nejblize kamery s danym primitivem
+					// pripocitat svetlo a nakreslit do FB
+					if (polygonWins) {
+						// polygon
+					}
+					else {
+						// sphere
+					}					
+				}
+				else {
+					// nastavit do FB pozadi
+
+				}
 			}
 		}
 
@@ -826,40 +918,12 @@ public:
 
 	void storePolygons() {
 		
-		Matrix PVM = projectionMatricesStack.back() * modelViewMatricesStack.back();
-
 		polygon p;
-
-		Vertex v1 = vertexBuffer[0];
-		Vertex v2 = vertexBuffer[1];
-		Vertex v3 = vertexBuffer[2];
-		v1 = PVM * v1;
-		v1 = v1 * (1 / v1.m_data[3]);
-		v2 = PVM * v2;
-		v2 = v2 * (1 / v2.m_data[3]);
-		v3 = PVM * v3;
-		v3 = v3 * (1 / v3.m_data[3]);
-
-		//int y1 = viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0];
-		//int y2 = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
-		//int y3 = viewport.m_data[1][0] * v3.m_data[1] + viewport.m_data[3][0];
-		
-		/*p.a = Vertex(viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
-			y1,
-			viewport.m_data[0][1] * v1.m_data[2] + viewport.m_data[1][1],
-			1);
-		p.b = Vertex(viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
-			y2,
-			viewport.m_data[0][1] * v2.m_data[2] + viewport.m_data[1][1],
-			1);
-		p.c = Vertex(viewport.m_data[0][0] * v3.m_data[0] + viewport.m_data[2][0],
-			y3,
-			viewport.m_data[0][1] * v3.m_data[2] + viewport.m_data[1][1],
-			1);*/
-
-		p.a = v1;
-		p.b = v2;
-		p.c = v3;
-		currentContext->polygons.push_back(p);
+		p.a = vertexBuffer[0];
+		p.b = vertexBuffer[1];
+		p.c = vertexBuffer[2];
+		p.matIdx = (addingEmissiveMaterial) ? emmisiveMaterials.size() - 1 : materials.size() - 1;
+		p.matType = addingEmissiveMaterial;
+		polygons.push_back(p);
 	}
 };
