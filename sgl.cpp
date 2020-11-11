@@ -478,8 +478,8 @@ void sglFrustum(float left, float right, float bottom, float top, float near, fl
 	(right + left) / (right - left),(top + bottom) / (top - bottom),	-(far + near) / (far - near),	-1,	// col 3
 	0,								0,							-2 * far * near / (far - near),		0 }; // col 4
 
-	currentContext->viewport.m_data[0][1] = (far - near) / 2;
-	currentContext->viewport.m_data[1][1] = (far + near) / 2;
+	currentContext->viewport.m_data[0][1] = (far + near) / (near - far);
+	currentContext->viewport.m_data[1][1] = 2 * far * near / (near - far);
 
 	sglMultMatrix(flustrum);
 }
@@ -556,7 +556,7 @@ void sglBeginScene() {
 
 void sglEndScene() {
 
-	if (!sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
+	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	sglBeginEndSceneRunning = false;
 
@@ -570,11 +570,9 @@ void sglSphere(const float x,
 	if (sglBeginEndRunning || !sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 
-	sphere sp;
+	Sphere sp;
 
-	sp.x = x;
-	sp.y = y;
-	sp.z = z;
+	sp.center = Vertex(x,y,z,1);
 	sp.radius = radius;
 	sp.matIdx = currentContext->materials.size() - 1;
 
@@ -590,7 +588,7 @@ void sglMaterial(const float r,
 	const float T,
 	const float ior)
 {
-	material em;
+	Material em;
 	em.r = r;
 	em.g = g;
 	em.b = b;
@@ -611,13 +609,11 @@ void sglPointLight(const float x,
 {
 	if (sglBeginEndRunning || !sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	light eM;
+	Light eM;
+	eM.position = Vertex(x, y, z, 1);
 	eM.r = r;
 	eM.g = g;
 	eM.b = b;
-	eM.x = x;
-	eM.y = y;
-	eM.z = z;
 
 	currentContext->lights.push_back(eM);
 }
@@ -655,7 +651,7 @@ void sglEmissiveMaterial(const float r,
 {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return;	}
 
-	emissiveMaterial eM;
+	EmissiveMaterial eM;
 	eM.r = r;
 	eM.g = g;
 	eM.b = b;

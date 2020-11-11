@@ -17,7 +17,7 @@ struct colorPixel {
 	float b;
 };
 
-struct material {
+struct Material {
 	float r;
 	float g;
 	float b;
@@ -28,16 +28,39 @@ struct material {
 	float ior;
 };
 
-struct light {
-	float x;
-	float y;
-	float z;
+struct Light {
+	Vertex position;
 	float r;
 	float g;
 	float b;
+
+	Light(){}
+
+	Light(const Light& rhs) {
+		
+		position = rhs.position;
+		r = rhs.r;
+		g = rhs.g;
+		b = rhs.b;
+	}
+
+	Light& operator=(const  Light& rhs) {
+		Light temp(rhs);
+		swap(temp);
+		return *this;
+	}
+
+	/// Function for move constructor
+	///		@param rhs[in] reference to the intersection with which data should be swapped 
+	void swap(Light& rhs) {
+		std::swap(position, rhs.position);
+		std::swap(r, rhs.r);
+		std::swap(g, rhs.g);
+		std::swap(b, rhs.b);
+	}
 };
 
-struct emissiveMaterial {
+struct EmissiveMaterial {
 	float r;
 	float g;
 	float b;
@@ -46,27 +69,28 @@ struct emissiveMaterial {
 	float c2;
 };
 
-struct intersection {
+struct Intersection {
 	Vertex position;
 	Vertex normal;
-	float distance = INFINITY;
+	float distance;
 
-	intersection(const intersection& rhs) {
+	Intersection() : distance(INFINITY){}
+
+	Intersection(const Intersection& rhs) {
 		distance = rhs.distance;
 		position = rhs.position;
 		normal = rhs.normal;
 	}
 
-	intersection& operator=(const  intersection& rhs) {
-		intersection temp(rhs);
+	Intersection& operator=(const  Intersection& rhs) {
+		Intersection temp(rhs);
 		swap(temp);
 		return *this;
 	}
 
-	/* --- FUNCTIONS --- */
 	/// Function for move constructor
-	///		@param rhs[in] reference to the vertex with which data should be swapped 
-	void swap(intersection& rhs) {
+	///		@param rhs[in] reference to the intersection with which data should be swapped 
+	void swap(Intersection& rhs) {
 		std::swap(position, rhs.position);
 		std::swap(normal, rhs.normal);
 		std::swap(distance, rhs.distance);
@@ -79,18 +103,38 @@ struct enviromentMap {
 	float *texels;
 };
 
-struct ray {
+struct Ray {
 	Vertex origin;
 	Vertex dir;
+
+	Ray() {}
+
+	Ray(const Ray& rhs) {
+		origin = rhs.origin;
+		dir = rhs.dir;
+	}
+
+	Ray& operator=(const  Ray& rhs) {
+		Ray temp(rhs);
+		swap(temp);
+		return *this;
+	}
+
+	/// Function for move constructor
+	///		@param rhs[in] reference to the ray with which data should be swapped 
+	void swap(Ray& rhs) {
+		std::swap(origin, rhs.origin);
+		std::swap(dir, rhs.dir);
+	}
 };
 
-float dot(Vertex a, Vertex b)
+float dot(Vertex &a, Vertex &b)
 {
 	float product = a.m_data[0] * b.m_data[0] + a.m_data[1] * b.m_data[1] + a.m_data[2] * b.m_data[2];
 	return product;
 }
 
-Vertex cross(Vertex a, Vertex b){
+Vertex cross(Vertex &a, Vertex &b){
 	Vertex cross;
 	cross.m_data[0] = a.m_data[1] * b.m_data[2] - a.m_data[2] * b.m_data[1];
 	cross.m_data[1] = a.m_data[2] * b.m_data[0] - a.m_data[0] * b.m_data[2];
@@ -100,7 +144,7 @@ Vertex cross(Vertex a, Vertex b){
 
 }
 
-Vertex normalize(Vertex a) {
+Vertex normalize(Vertex &a) {
 	float lenght = sqrt((a.m_data[0] * a.m_data[0]) + (a.m_data[1] * a.m_data[1]) + (a.m_data[2] * a.m_data[2]));
 	a.m_data[0] = a.m_data[0] / lenght;
 	a.m_data[1] = a.m_data[1] / lenght;
@@ -108,7 +152,7 @@ Vertex normalize(Vertex a) {
 	return a;
 }
 
-Vertex minus(Vertex a, Vertex b) {
+Vertex minus(Vertex &a, Vertex &b) {
 	Vertex ret;
 	ret.m_data[0] = a.m_data[0] - b.m_data[0];
 	ret.m_data[1] = a.m_data[1] - b.m_data[1];
@@ -116,22 +160,40 @@ Vertex minus(Vertex a, Vertex b) {
 	return ret;
 }
 
-
-struct sphere {
-	float x;
-	float y;
-	float z;
+struct Sphere {
 	float radius;
 	unsigned int matIdx;
-	Vertex centre;
+	Vertex center;
 
-	intersection intersects(ray &r) {
+	Sphere() {}
+
+	Sphere(const Sphere& rhs) {
+		radius = rhs.radius;
+		matIdx = rhs.matIdx;
+		center = rhs.center;
+	}
+
+	Sphere& operator=(const  Sphere& rhs) {
+		Sphere temp(rhs);
+		swap(temp);
+		return *this;
+	}
+
+	/// Function for move constructor
+	///		@param rhs[in] reference to the intersection with which data should be swapped 
+	void swap(Sphere& rhs) {
+		std::swap(radius, rhs.radius);
+		std::swap(matIdx, rhs.matIdx);
+		std::swap(center, rhs.center);
+	}
+
+	Intersection intersects(Ray &r) {
 		
-		centre.m_data[0] = x;
-		centre.m_data[1] = y;
-		centre.m_data[2] = z;
-		intersection Int;
-		//Vertex dist = r.origin - centre;
+		float x = center.m_data[0];
+		float y = center.m_data[1];
+		float z = center.m_data[2];
+		Intersection Int;
+		//Vertex dist = r.origin - center;
 		Vertex dist;
 		dist.m_data[0] = r.origin.m_data[0] - x;
 		dist.m_data[1] = r.origin.m_data[1] - y;
@@ -163,7 +225,7 @@ struct sphere {
 	}
 };
 
-struct polygon {
+struct Polygon {
 	Vertex a;
 	Vertex b;
 	Vertex c;
@@ -171,11 +233,39 @@ struct polygon {
 	unsigned int matIdx;
 	bool matType;
 
+	Polygon() {}
+
+	Polygon(const Polygon& rhs) {
+		a = rhs.a;
+		b = rhs.b;
+		c = rhs.c;
+		normal = rhs.normal;
+		matIdx = rhs.matIdx;
+		matType = rhs.matType;
+	}
+
+	Polygon& operator=(const  Polygon& rhs) {
+		Polygon temp(rhs);
+		swap(temp);
+		return *this;
+	}
+
+	/// Function for move constructor
+	///		@param rhs[in] reference to the intersection with which data should be swapped 
+	void swap(Polygon& rhs) {
+		std::swap(a, rhs.a);
+		std::swap(b, rhs.b);
+		std::swap(c, rhs.c);
+		std::swap(normal, rhs.normal);
+		std::swap(matIdx, rhs.matIdx);
+		std::swap(matType, rhs.matType);
+	}
+
 	/*
 	* https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 	*/
-	intersection intersects(ray &r) {
-		intersection Int;
+	Intersection intersects(Ray &r) {
+		Intersection Int;
 
 		Vertex edge1 = minus(b, a);
 		Vertex edge2 = minus(c, a);
@@ -206,8 +296,9 @@ struct polygon {
 		else {
 
 
-			return Int;
+			
 		}
+		return Int;
 	}
 };
 
@@ -264,17 +355,17 @@ public:
 	/// Vector of vertices, fills withing the glBegin() and glEnd() sequence
 	std::vector<Vertex> vertexBuffer;
 
-	std::vector<polygon> polygons;
+	std::vector<Polygon> polygons;
 
-	std::vector<light> lights;
+	std::vector<Light> lights;
 
-	std::vector<emissiveMaterial> emmisiveMaterials;
+	std::vector<EmissiveMaterial> emmisiveMaterials;
 
 	std::vector<enviromentMap> enviromentMaps;
 
-	std::vector<sphere> spheres;
+	std::vector<Sphere> spheres;
 
-	std::vector<material> materials;
+	std::vector<Material> materials;
 
 	bool addingEmissiveMaterial = false;
 
@@ -852,7 +943,7 @@ public:
 							float temp = (x2*z1 - z2 * x1);
 
 							for (int j = x1 + 1; j <= x2; ++j) {
-								float z = (z2*j - z1*j + temp) / (x2 - x1);
+								float z = 1/((z2*j - z1*j + temp) / (x2 - x1));
 								int idx = y * width + j;
 								if (depthBuffer[idx] > z) {
 									depthBuffer[idx] = z;
@@ -902,6 +993,21 @@ public:
 		colorBuffer[position] = drawingColor.r;
 		colorBuffer[position + 1] = drawingColor.g;
 		colorBuffer[position + 2] = drawingColor.b;
+	}
+
+	/// Places given color to the specifed position in the color buffer
+	///		@param x[in] pixel x coordinate
+	///		@param y[in] pixel y coordinate
+	inline void setPixel(int x, int y, float r, float g, float b) {
+		if (y >= height || y < 0 || x < 0 || x > width) {
+			return;
+		}
+
+		int position = x + y * width;
+		position *= 3;
+		colorBuffer[position] = r;
+		colorBuffer[position + 1] = g;
+		colorBuffer[position + 2] = b;
 	}
 
 	/// Places currently used color to 8 specifed positions in the color buffer
@@ -964,40 +1070,97 @@ public:
 		return SGL_NO_ERROR;
 	}
 
+	float Q_rsqrt(float number) {
+		long i;
+		float x2, y;
+		const float threehalfs = 1.5F;
+
+		x2 = number * 0.5F;
+		y = number;
+		i = *(long *)&y;                       // evil floating point bit level hacking
+		i = 0x5f3759df - (i >> 1);               // what the fuck? 
+		y = *(float *)&i;
+		y = y * (threehalfs - (x2 * y * y));   // 1st iteration
+	//	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+
+		return y;
+	}
+
+	void Normalize(Vertex &v) {
+		float length = Q_rsqrt(
+			(v.m_data[0] * v.m_data[0]) +
+			(v.m_data[1] * v.m_data[1]) +
+			(v.m_data[2] * v.m_data[2]));
+		v.m_data[0] /= length;
+		v.m_data[1] /= length;
+		v.m_data[2] /= length;
+	}
+
 	void startRt(){
 
 		Matrix MV = modelViewMatricesStack.back();
 		Matrix P = projectionMatricesStack.back();
+		Matrix invMV = MV.inverse();
+		Matrix invP = P.inverse();
+		Matrix Vp;
+		Vp.m_data[0][0] = viewport.m_data[0][0];
+		Vp.m_data[0][3] = viewport.m_data[2][0];
+		Vp.m_data[1][1] = viewport.m_data[1][0];
+		Vp.m_data[1][3] = viewport.m_data[3][0];
+		Vp.m_data[2][2] = 1; // 22
+		Vp.m_data[2][3] = 0; // 23
+		Matrix invVp = Vp.inverse();
+		//invVp.m_data[2][2] = 1;
+		//invVp.m_data[2][3] = 0;
+		Matrix MVP = invMV * P.inverse() * invVp;
+
+		
 
 		// transformovat body do world coords TODO
-
 		// vypocitat normaly polygonu TODO
+		/*for (unsigned int i = 0; i < polygons.size(); ++i) {
+			polygons[i].a = MV * polygons[i].a;
+			polygons[i].b = MV * polygons[i].b;
+			polygons[i].c = MV * polygons[i].c;
+			Vertex edge1 = minus(polygons[i].b, polygons[i].a);
+			Vertex edge2 = minus(polygons[i].c, polygons[i].a);
+			polygons[i].normal = cross(edge1, edge2);
+			Normalize(polygons[i].normal);
+		}
+
+		for (unsigned int i = 0; i < spheres.size(); ++i) {
+			spheres[i].center = MV * spheres[i].center;
+			float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
+			spheres[i].radius *= Q_rsqrt(MVscale);
+		}*/
+
+		
 
 		// urcit paprsky TODO
-		
+		Vertex rayOrigin = invMV * Vertex(0, 0, 0, 1);
 		
 		// iff prunik -> vypocit osvetleni ze vsech point lights a nastavit barvu
 		// neni prunik -> barva pozadí
-		Vertex rayOrigin;
+		
+		
 		
 		// projit vsechny pixely a vrhat paprsky
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				
 				// urcit paprsky TODO
-				Vertex B = rayOrigin;
-
-				ray r;
+				Ray r;
 				r.origin = rayOrigin;
-				//r.dir = 
-				intersection bestInt;
-				polygon bestPolygon;
-				sphere bestSphere;
+				r.dir = normalize(minus(MVP * Vertex(x, y, -1, 1), rayOrigin));
+
+				Intersection bestInt;
+				Polygon bestPolygon;
+				Sphere bestSphere;
 				bool polygonWins = true;
 
 				// kazdy paprsek zkusit prunik se scenou
 				for (unsigned int i = 0; i < polygons.size(); ++i) {
-					intersection Int = polygons[i].intersects(r);
+					Intersection Int = polygons[i].intersects(r);
 					if (Int.distance < bestInt.distance) {
 						bestInt = Int;
 						bestPolygon = polygons[i];
@@ -1005,7 +1168,7 @@ public:
 				}
 
 				for (unsigned int i = 0; i < spheres.size(); ++i) {
-					intersection Int = spheres[i].intersects(r);
+					Intersection Int = spheres[i].intersects(r);
 					if (Int.distance < bestInt.distance) {
 						bestInt = Int;
 						bestSphere = spheres[i];
@@ -1018,14 +1181,37 @@ public:
 					// pripocitat svetlo a nakreslit do FB
 					if (polygonWins) {
 						// polygon
+						if (bestPolygon.matType) {
+							setPixel(x, y,
+								materials[bestPolygon.matIdx].r,
+								materials[bestPolygon.matIdx].g,
+								materials[bestPolygon.matIdx].b
+							);
+						}
+						else {
+							setPixel(x, y,
+								emmisiveMaterials[bestPolygon.matIdx].r,
+								emmisiveMaterials[bestPolygon.matIdx].g,
+								emmisiveMaterials[bestPolygon.matIdx].b
+							);
+						}
 					}
 					else {
 						// sphere
+						setPixel(x, y,
+							materials[bestSphere.matIdx].r,
+							materials[bestSphere.matIdx].g,
+							materials[bestSphere.matIdx].b
+						);
 					}					
 				}
 				else {
 					// nastavit do FB pozadi
-
+					setPixel(x, y,
+						clearColor.r,
+						clearColor.g,
+						clearColor.b
+					);
 				}
 			}
 		}
@@ -1034,7 +1220,7 @@ public:
 
 	void storePolygons() {
 		
-		polygon p;
+		Polygon p;
 		p.a = vertexBuffer[0];
 		p.b = vertexBuffer[1];
 		p.c = vertexBuffer[2];
