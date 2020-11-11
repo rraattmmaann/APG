@@ -1181,7 +1181,7 @@ public:
 					// pripocitat svetlo a nakreslit do FB
 					if (polygonWins) {
 						// polygon
-						if (bestPolygon.matType) {
+						if (!bestPolygon.matType) {
 							setPixel(x, y,
 								materials[bestPolygon.matIdx].r,
 								materials[bestPolygon.matIdx].g,
