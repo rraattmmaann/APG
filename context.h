@@ -9,6 +9,7 @@
 
 #include "sgl.h"
 #include "matrix.hpp"
+#include <algorithm>
 
 /// Structure representing a pixel in the canvas
 struct colorPixel {
@@ -266,22 +267,27 @@ struct Polygon {
 	*/
 	Intersection intersects(Ray &r) {
 		Intersection Int;
+		Vertex vertex0 = a;
+		Vertex vertex1 = b;
+		Vertex vertex2 = c;
+		Vertex edge1, edge2, h, s, q;
+		float a, f, u, v;
 
-		Vertex edge1 = minus(b, a);
-		Vertex edge2 = minus(c, a);
-		Vertex h = cross(r.dir, edge2);
-		float A = dot(edge1, h);
-		if (A > -0.000001 && A < 0.000001) {
+		edge1 = minus(vertex1, vertex0);
+		edge2 = minus(vertex2, vertex0);
+		h = cross(r.dir, edge2);
+		a = dot(edge1, h);
+		if (a > -0.000001 && a < 0.000001) {
 			return Int;
 		}
-		float f = 1.0 / A;
-		Vertex s = minus(r.origin, a);
-		float u = f * dot(s, h);
+		f = 1.0 / a;
+		s = minus(r.origin, vertex0);
+		u = f * dot(s, h);
 		if (u < 0.0 || u > 1.0) {
 			return Int;
 		}
-		Vertex q = cross(s, edge1);
-		float v = f * dot(r.dir, q);
+		q = cross(s, edge1);
+		v = f * dot(r.dir, q);
 		if (v < 0.0 || u + v > 1.0) {
 			return Int;
 		}
@@ -291,7 +297,9 @@ struct Polygon {
 			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
 			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
-			//TODO spoèítat normálu
+			Int.distance = t;
+			
+			return Int;
 		}
 		else {
 
@@ -1096,6 +1104,49 @@ public:
 		v.m_data[2] /= length;
 	}
 
+
+	Vertex phong(Ray ray, Intersection intersection, Material mat) {
+		Vertex ret;
+		float kd, ks, shine, r,g,b;
+		kd = mat.kd;
+		ks = mat.ks;
+		shine = mat.shine;
+		r = mat.r;
+		g = mat.g;
+		b = mat.b;
+
+		for (unsigned int i = 0; i < lights.size(); i++) {
+			Light l = lights[i];
+			Vertex v;
+			Vertex distance = minus(l.position, intersection.position) * minus(l.position, intersection.position);
+			float distanceF = sqrt(distance.m_data[0] + distance.m_data[1] + distance.m_data[2]);
+			
+			Vertex L = normalize(minus( l.position, intersection.position));
+			Vertex minusL = L*-1;
+			Vertex R = minus(minusL, intersection.normal * dot(minusL, intersection.normal) * 2);
+			Vertex V = ray.dir * -1;
+
+			Vertex matColor;
+			matColor.m_data[0] = mat.r;
+			matColor.m_data[1] = mat.g;
+			matColor.m_data[2] = mat.b;
+
+			Vertex lightColor;
+			lightColor.m_data[0] = l.r;
+			lightColor.m_data[1] = l.g;
+			lightColor.m_data[2] = l.b;
+
+			v += matColor * lightColor;
+			v += matColor  * std::max(0.0f, dot(intersection.normal, L)) * mat.kd;
+			v += std::pow(std::max(0.0f, dot(R, V)), mat.shine) * mat.ks;
+
+			v = v * (1.0/distanceF);
+			ret += v;
+		}
+		
+		return ret;
+	}
+
 	void startRt(){
 
 		Matrix MV = modelViewMatricesStack.back();
@@ -1181,27 +1232,36 @@ public:
 					// pripocitat svetlo a nakreslit do FB
 					if (polygonWins) {
 						// polygon
-						if (bestPolygon.matType) {
+						if (!bestPolygon.matType) {
+							Vertex v = phong(r, bestInt, materials[bestPolygon.matIdx]);
+
 							setPixel(x, y,
-								materials[bestPolygon.matIdx].r,
-								materials[bestPolygon.matIdx].g,
-								materials[bestPolygon.matIdx].b
+								v.m_data[0],
+								v.m_data[1],
+								v.m_data[2]
 							);
 						}
 						else {
+							//TODO
+							Vertex v = phong(r, bestInt, materials[bestPolygon.matIdx]);
+
 							setPixel(x, y,
-								emmisiveMaterials[bestPolygon.matIdx].r,
-								emmisiveMaterials[bestPolygon.matIdx].g,
-								emmisiveMaterials[bestPolygon.matIdx].b
+								v.m_data[0], 
+								v.m_data[1],
+								v.m_data[2]
 							);
+							
 						}
 					}
 					else {
 						// sphere
+
+						Vertex v = phong(r, bestInt, materials[bestSphere.matIdx]);
+
 						setPixel(x, y,
-							materials[bestSphere.matIdx].r,
-							materials[bestSphere.matIdx].g,
-							materials[bestSphere.matIdx].b
+							v.m_data[0] ,
+							v.m_data[1] ,
+							v.m_data[2]
 						);
 					}					
 				}
@@ -1224,6 +1284,10 @@ public:
 		p.a = vertexBuffer[0];
 		p.b = vertexBuffer[1];
 		p.c = vertexBuffer[2];
+		Vertex edge1 = minus(p.b, p.a);
+		Vertex edge2 = minus(p.c, p.a);
+		p.normal = cross(edge1, edge2);
+		p.normal = normalize(p.normal);
 		p.matIdx = (addingEmissiveMaterial) ? emmisiveMaterials.size() - 1 : materials.size() - 1;
 		p.matType = addingEmissiveMaterial;
 		polygons.push_back(p);

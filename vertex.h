@@ -44,6 +44,32 @@ public:
 		return result;
 	}
 
+	Vertex operator*(const Vertex& rhs) {
+		Vertex result;
+		for (unsigned int i = 0; i < 4; i++) {
+			result.m_data[i] = m_data[i] * rhs.m_data[i];
+		}
+		return result;
+	}
+
+	Vertex& operator+=(const Vertex& rhs) {
+
+		m_data[0] += rhs.m_data[0];
+		m_data[1] += rhs.m_data[1];
+		m_data[2] += rhs.m_data[2];
+		m_data[3] += rhs.m_data[3];
+		return *this;
+	}
+
+	Vertex& operator+=(const float& rhs) {
+
+		m_data[0] += rhs;
+		m_data[1] += rhs;
+		m_data[2] += rhs;
+		m_data[3] += rhs;
+		return *this;
+	}
+
 	/// Vertex assignment Operator
 	///		@param rhs[in] which value to assign
 	Vertex& operator=(const Vertex& rhs) {
