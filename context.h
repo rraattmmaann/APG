@@ -1136,11 +1136,11 @@ public:
 			lightColor.m_data[1] = l.g;
 			lightColor.m_data[2] = l.b;
 
-			v += matColor * lightColor;
+			//v += matColor * lightColor; nechteji po nas
 			v += matColor  * std::max(0.0f, dot(intersection.normal, L)) * mat.kd;
 			v += std::pow(std::max(0.0f, dot(R, V)), mat.shine) * mat.ks;
 
-			v = v * (1.0/distanceF);
+			//v = v * (1.0/distanceF); nezname intenzitu svetla, takze nedavame
 			ret += v;
 		}
 		
