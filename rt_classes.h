@@ -321,7 +321,7 @@ struct Polygon {
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
 			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
 			Int.distance = t;
-
+			Int.normal = normal;
 			return Int;
 		}
 		else {
