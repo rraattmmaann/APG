@@ -6,10 +6,11 @@
 #include <algorithm>
 #include <tuple>
 #include <cmath>
+#include <thread>
 
 #include "sgl.h"
 #include "matrix.hpp"
-#include <algorithm>
+#include "rt_classes.h"
 
 /// Structure representing a pixel in the canvas
 struct colorPixel {
@@ -17,299 +18,6 @@ struct colorPixel {
 	float g;
 	float b;
 };
-
-struct Material {
-	float r;
-	float g;
-	float b;
-	float kd;
-	float ks;
-	float shine;
-	float T;
-	float ior;
-};
-
-struct Light {
-	Vertex position;
-	float r;
-	float g;
-	float b;
-
-	Light(){}
-
-	Light(const Light& rhs) {
-		
-		position = rhs.position;
-		r = rhs.r;
-		g = rhs.g;
-		b = rhs.b;
-	}
-
-	Light& operator=(const  Light& rhs) {
-		Light temp(rhs);
-		swap(temp);
-		return *this;
-	}
-
-	/// Function for move constructor
-	///		@param rhs[in] reference to the intersection with which data should be swapped 
-	void swap(Light& rhs) {
-		std::swap(position, rhs.position);
-		std::swap(r, rhs.r);
-		std::swap(g, rhs.g);
-		std::swap(b, rhs.b);
-	}
-};
-
-struct EmissiveMaterial {
-	float r;
-	float g;
-	float b;
-	float c0;
-	float c1;
-	float c2;
-};
-
-struct Intersection {
-	Vertex position;
-	Vertex normal;
-	float distance;
-
-	Intersection() : distance(INFINITY){}
-
-	Intersection(const Intersection& rhs) {
-		distance = rhs.distance;
-		position = rhs.position;
-		normal = rhs.normal;
-	}
-
-	Intersection& operator=(const  Intersection& rhs) {
-		Intersection temp(rhs);
-		swap(temp);
-		return *this;
-	}
-
-	/// Function for move constructor
-	///		@param rhs[in] reference to the intersection with which data should be swapped 
-	void swap(Intersection& rhs) {
-		std::swap(position, rhs.position);
-		std::swap(normal, rhs.normal);
-		std::swap(distance, rhs.distance);
-	}
-};
-
-struct enviromentMap {
-	int width;
-	int height;
-	float *texels;
-};
-
-struct Ray {
-	Vertex origin;
-	Vertex dir;
-
-	Ray() {}
-
-	Ray(const Ray& rhs) {
-		origin = rhs.origin;
-		dir = rhs.dir;
-	}
-
-	Ray& operator=(const  Ray& rhs) {
-		Ray temp(rhs);
-		swap(temp);
-		return *this;
-	}
-
-	/// Function for move constructor
-	///		@param rhs[in] reference to the ray with which data should be swapped 
-	void swap(Ray& rhs) {
-		std::swap(origin, rhs.origin);
-		std::swap(dir, rhs.dir);
-	}
-};
-
-float dot(Vertex &a, Vertex &b)
-{
-	float product = a.m_data[0] * b.m_data[0] + a.m_data[1] * b.m_data[1] + a.m_data[2] * b.m_data[2];
-	return product;
-}
-
-Vertex cross(Vertex &a, Vertex &b){
-	Vertex cross;
-	cross.m_data[0] = a.m_data[1] * b.m_data[2] - a.m_data[2] * b.m_data[1];
-	cross.m_data[1] = a.m_data[2] * b.m_data[0] - a.m_data[0] * b.m_data[2];
-	cross.m_data[2] = a.m_data[0] * b.m_data[1] - a.m_data[1] * b.m_data[0];
-
-	return cross;
-
-}
-
-Vertex normalize(Vertex &a) {
-	float lenght = sqrt((a.m_data[0] * a.m_data[0]) + (a.m_data[1] * a.m_data[1]) + (a.m_data[2] * a.m_data[2]));
-	a.m_data[0] = a.m_data[0] / lenght;
-	a.m_data[1] = a.m_data[1] / lenght;
-	a.m_data[2] = a.m_data[2] / lenght;
-	return a;
-}
-
-Vertex minus(Vertex &a, Vertex &b) {
-	Vertex ret;
-	ret.m_data[0] = a.m_data[0] - b.m_data[0];
-	ret.m_data[1] = a.m_data[1] - b.m_data[1];
-	ret.m_data[2] = a.m_data[2] - b.m_data[2];
-	return ret;
-}
-
-struct Sphere {
-	float radius;
-	unsigned int matIdx;
-	Vertex center;
-
-	Sphere() {}
-
-	Sphere(const Sphere& rhs) {
-		radius = rhs.radius;
-		matIdx = rhs.matIdx;
-		center = rhs.center;
-	}
-
-	Sphere& operator=(const  Sphere& rhs) {
-		Sphere temp(rhs);
-		swap(temp);
-		return *this;
-	}
-
-	/// Function for move constructor
-	///		@param rhs[in] reference to the intersection with which data should be swapped 
-	void swap(Sphere& rhs) {
-		std::swap(radius, rhs.radius);
-		std::swap(matIdx, rhs.matIdx);
-		std::swap(center, rhs.center);
-	}
-
-	Intersection intersects(Ray &r) {
-		
-		float x = center.m_data[0];
-		float y = center.m_data[1];
-		float z = center.m_data[2];
-		Intersection Int;
-		//Vertex dist = r.origin - center;
-		Vertex dist;
-		dist.m_data[0] = r.origin.m_data[0] - x;
-		dist.m_data[1] = r.origin.m_data[1] - y;
-		dist.m_data[2] = r.origin.m_data[2] - z;
-
-		Vertex normal;
-
-		float a = dot(r.dir, r.dir);
-		float b = 2.0 * dot(dist, r.dir);
-		float c = dot(dist, dist) - radius * radius;
-		float disc = b * b - 4 * a * c;
-		
-		float t = -1.0;
-		if (disc >= 0) {
-			t = (-b - sqrt(disc)) / (2.0 * a);
-			//mùže být t záporné?
-			Int.distance = t;
-			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
-			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
-			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
-			
-			normal.m_data[0] = Int.position.m_data[0] - x;
-			normal.m_data[1] = Int.position.m_data[1] - y;
-			normal.m_data[2] = Int.position.m_data[2] - z;
-			Int.normal = normalize(normal);
-		}
-
-		return Int;
-	}
-};
-
-struct Polygon {
-	Vertex a;
-	Vertex b;
-	Vertex c;
-	Vertex normal;
-	unsigned int matIdx;
-	bool matType;
-
-	Polygon() {}
-
-	Polygon(const Polygon& rhs) {
-		a = rhs.a;
-		b = rhs.b;
-		c = rhs.c;
-		normal = rhs.normal;
-		matIdx = rhs.matIdx;
-		matType = rhs.matType;
-	}
-
-	Polygon& operator=(const  Polygon& rhs) {
-		Polygon temp(rhs);
-		swap(temp);
-		return *this;
-	}
-
-	/// Function for move constructor
-	///		@param rhs[in] reference to the intersection with which data should be swapped 
-	void swap(Polygon& rhs) {
-		std::swap(a, rhs.a);
-		std::swap(b, rhs.b);
-		std::swap(c, rhs.c);
-		std::swap(normal, rhs.normal);
-		std::swap(matIdx, rhs.matIdx);
-		std::swap(matType, rhs.matType);
-	}
-
-	/*
-	* https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-	*/
-	Intersection intersects(Ray &r) {
-		Intersection Int;
-		Vertex vertex0 = a;
-		Vertex vertex1 = b;
-		Vertex vertex2 = c;
-		Vertex edge1, edge2, h, s, q;
-		float a, f, u, v;
-
-		edge1 = minus(vertex1, vertex0);
-		edge2 = minus(vertex2, vertex0);
-		h = cross(r.dir, edge2);
-		a = dot(edge1, h);
-		if (a > -0.000001 && a < 0.000001) {
-			return Int;
-		}
-		f = 1.0 / a;
-		s = minus(r.origin, vertex0);
-		u = f * dot(s, h);
-		if (u < 0.0 || u > 1.0) {
-			return Int;
-		}
-		q = cross(s, edge1);
-		v = f * dot(r.dir, q);
-		if (v < 0.0 || u + v > 1.0) {
-			return Int;
-		}
-		
-		float t = f * dot(edge2, q);
-		if (t > 0.000001) {
-			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
-			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
-			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
-			Int.distance = t;
-			
-			return Int;
-		}
-		else {
-
-
-			
-		}
-		return Int;
-	}
-};
-
 
 /// Holds all variables need fot the current context
 class Context {
@@ -369,7 +77,7 @@ public:
 
 	std::vector<EmissiveMaterial> emmisiveMaterials;
 
-	std::vector<enviromentMap> enviromentMaps;
+	std::vector<EnviromentMap> enviromentMaps;
 
 	std::vector<Sphere> spheres;
 
@@ -525,7 +233,7 @@ public:
 		// Compute the transformed radius
 		float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
 		float Pscale = P.m_data[0][0] * P.m_data[1][1] - P.m_data[1][0] * P.m_data[0][1];
-		r *= sqrt(MVscale * Pscale * viewportScale);
+		r *= Q_rsqrt(MVscale * Pscale * viewportScale);
 		
 		if (areaMode == SGL_FILL) {
 
@@ -544,8 +252,8 @@ public:
 				x1 = (2 * stx - sqrt(4 * stx*stx + 4 * K)) / 2;
 				*/
 
-				x1 = int(outerContent - sqrt(sqrtContent - ((count - sty)*(count - sty))));
-				x2 = int(outerContent + sqrt(sqrtContent - ((count - sty)*(count - sty))));
+				x1 = int(outerContent - Q_rsqrt(sqrtContent - ((count - sty)*(count - sty))));
+				x2 = int(outerContent + Q_rsqrt(sqrtContent - ((count - sty)*(count - sty))));
 
 				bresenhamLine(x1+1, x2, count, count);
 			}
@@ -1078,21 +786,7 @@ public:
 		return SGL_NO_ERROR;
 	}
 
-	float Q_rsqrt(float number) {
-		long i;
-		float x2, y;
-		const float threehalfs = 1.5F;
-
-		x2 = number * 0.5F;
-		y = number;
-		i = *(long *)&y;                       // evil floating point bit level hacking
-		i = 0x5f3759df - (i >> 1);               // what the fuck? 
-		y = *(float *)&i;
-		y = y * (threehalfs - (x2 * y * y));   // 1st iteration
-	//	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
-
-		return y;
-	}
+	
 
 	void Normalize(Vertex &v) {
 		float length = Q_rsqrt(
@@ -1105,42 +799,22 @@ public:
 	}
 
 
-	Vertex phong(Ray ray, Intersection intersection, Material mat) {
+	Vertex phong(Ray &ray, Intersection &intersection, Material &mat) {
 		Vertex ret;
-		float kd, ks, shine, r,g,b;
-		kd = mat.kd;
-		ks = mat.ks;
-		shine = mat.shine;
-		r = mat.r;
-		g = mat.g;
-		b = mat.b;
+		Vertex matColor(mat.r, mat.g, mat.b, 1);
+		matColor = matColor * mat.kd;
 
 		for (unsigned int i = 0; i < lights.size(); i++) {
 			Light l = lights[i];
-			Vertex v;
-			Vertex distance = minus(l.position, intersection.position) * minus(l.position, intersection.position);
-			float distanceF = sqrt(distance.m_data[0] + distance.m_data[1] + distance.m_data[2]);
+			
 			
 			Vertex L = normalize(minus( l.position, intersection.position));
 			Vertex minusL = L*-1;
 			Vertex R = minus(minusL, intersection.normal * dot(minusL, intersection.normal) * 2);
-			Vertex V = ray.dir * -1;
 
-			Vertex matColor;
-			matColor.m_data[0] = mat.r;
-			matColor.m_data[1] = mat.g;
-			matColor.m_data[2] = mat.b;
+			Vertex v = matColor * std::max(0.0f, dot(intersection.normal, L));
+			v += std::pow(std::max(0.0f, dot(R, ray.dir)), mat.shine) * mat.ks;
 
-			Vertex lightColor;
-			lightColor.m_data[0] = l.r;
-			lightColor.m_data[1] = l.g;
-			lightColor.m_data[2] = l.b;
-
-			//v += matColor * lightColor; nechteji po nas
-			v += matColor  * std::max(0.0f, dot(intersection.normal, L)) * mat.kd;
-			v += std::pow(std::max(0.0f, dot(R, V)), mat.shine) * mat.ks;
-
-			//v = v * (1.0/distanceF); nezname intenzitu svetla, takze nedavame
 			ret += v;
 		}
 		
@@ -1149,60 +823,25 @@ public:
 
 	void startRt(){
 
-		Matrix MV = modelViewMatricesStack.back();
-		Matrix P = projectionMatricesStack.back();
-		Matrix invMV = MV.inverse();
-		Matrix invP = P.inverse();
+		Matrix invMV = modelViewMatricesStack.back().inverse();
 		Matrix Vp;
 		Vp.m_data[0][0] = viewport.m_data[0][0];
 		Vp.m_data[0][3] = viewport.m_data[2][0];
 		Vp.m_data[1][1] = viewport.m_data[1][0];
 		Vp.m_data[1][3] = viewport.m_data[3][0];
-		Vp.m_data[2][2] = 1; // 22
-		Vp.m_data[2][3] = 0; // 23
-		Matrix invVp = Vp.inverse();
-		//invVp.m_data[2][2] = 1;
-		//invVp.m_data[2][3] = 0;
-		Matrix MVP = invMV * P.inverse() * invVp;
-
-		
-
-		// transformovat body do world coords TODO
-		// vypocitat normaly polygonu TODO
-		/*for (unsigned int i = 0; i < polygons.size(); ++i) {
-			polygons[i].a = MV * polygons[i].a;
-			polygons[i].b = MV * polygons[i].b;
-			polygons[i].c = MV * polygons[i].c;
-			Vertex edge1 = minus(polygons[i].b, polygons[i].a);
-			Vertex edge2 = minus(polygons[i].c, polygons[i].a);
-			polygons[i].normal = cross(edge1, edge2);
-			Normalize(polygons[i].normal);
-		}
-
-		for (unsigned int i = 0; i < spheres.size(); ++i) {
-			spheres[i].center = MV * spheres[i].center;
-			float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
-			spheres[i].radius *= Q_rsqrt(MVscale);
-		}*/
-
-		
+		Matrix MVP = invMV * projectionMatricesStack.back().inverse() * Vp.inverse();
 
 		// urcit paprsky TODO
-		Vertex rayOrigin = invMV * Vertex(0, 0, 0, 1);
-		
-		// iff prunik -> vypocit osvetleni ze vsech point lights a nastavit barvu
-		// neni prunik -> barva pozadí
-		
-		
+		Ray r;
+		r.origin = invMV * Vertex(0, 0, 0, 1);
 		
 		// projit vsechny pixely a vrhat paprsky
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				
 				// urcit paprsky TODO
-				Ray r;
-				r.origin = rayOrigin;
-				r.dir = normalize(minus(MVP * Vertex(x, y, -1, 1), rayOrigin));
+				
+				r.dir = normalize(minus(MVP * Vertex(x, y, -1, 1), r.origin));
 
 				Intersection bestInt;
 				Polygon bestPolygon;
@@ -1230,6 +869,7 @@ public:
 				if (bestInt.distance < INFINITY) {
 					// nalezli jsme prusecik nejblize kamery s danym primitivem
 					// pripocitat svetlo a nakreslit do FB
+					r.dir = r.dir * -1;
 					if (polygonWins) {
 						// polygon
 						if (!bestPolygon.matType) {

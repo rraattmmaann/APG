@@ -634,7 +634,7 @@ void sglEnvironmentMap(const int width,
 {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	enviromentMap eM;
+	EnviromentMap eM;
 	eM.width = width;
 	eM.height = height;
 	eM.texels = texels;
