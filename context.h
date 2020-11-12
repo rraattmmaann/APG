@@ -798,7 +798,7 @@ public:
 		v.m_data[2] /= length;
 	}
 
-
+	/// Phongs illumination model
 	Vertex phong(Ray &ray, Intersection &intersection, Material &mat) {
 		Vertex ret;
 		Vertex matColor(mat.r, mat.g, mat.b, 1);
