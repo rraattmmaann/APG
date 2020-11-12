@@ -806,13 +806,13 @@ public:
 
 		for (unsigned int i = 0; i < lights.size(); i++) {
 			Light l = lights[i];
-			
-			
+			Vertex light(l.r, l.g, l.b, 1);
+
 			Vertex L = normalize(minus( l.position, intersection.position));
 			Vertex minusL = L*-1;
 			Vertex R = minus(minusL, intersection.normal * dot(minusL, intersection.normal) * 2);
 
-			Vertex v = matColor * std::max(0.0f, dot(intersection.normal, L));
+			Vertex v = matColor * light * std::max(0.0f, dot(intersection.normal, L));
 			v += std::pow(std::max(0.0f, dot(R, ray.dir)), mat.shine) * mat.ks;
 
 			ret += v;
@@ -841,7 +841,7 @@ public:
 				
 				// urcit paprsky TODO
 				
-				r.dir = normalize(minus(MVP * Vertex(x, y, -1, 1), r.origin));
+				r.dir = normalize(minus(MVP * Vertex(x , y, -1, 1), r.origin));
 
 				Intersection bestInt;
 				Polygon bestPolygon;
