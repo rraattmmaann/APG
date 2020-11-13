@@ -154,7 +154,7 @@ Vertex cross(Vertex &a, Vertex &b) {
 /// Normalizes given vector
 ///		@param a[in] vector to normalize
 ///		@return normalized vector
-Vertex normalize(Vertex &a) {
+Vertex normalize(Vertex a) {
 	float lenght = sqrt((a.m_data[0] * a.m_data[0]) + (a.m_data[1] * a.m_data[1]) + (a.m_data[2] * a.m_data[2]));
 	a.m_data[0] = a.m_data[0] / lenght;
 	a.m_data[1] = a.m_data[1] / lenght;
@@ -162,7 +162,7 @@ Vertex normalize(Vertex &a) {
 	return a;
 }
 
-Vertex minus(Vertex &a, Vertex &b) {
+Vertex minus(Vertex a, Vertex b) {
 	Vertex ret;
 	ret.m_data[0] = a.m_data[0] - b.m_data[0];
 	ret.m_data[1] = a.m_data[1] - b.m_data[1];
@@ -321,7 +321,7 @@ struct Polygon {
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
 			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
 			Int.distance = t;
-
+			Int.normal = normal;
 			return Int;
 		}
 		else {
