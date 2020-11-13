@@ -570,13 +570,13 @@ void sglSphere(const float x,
 	if (sglBeginEndRunning || !sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 
-	Sphere sp;
-
-	sp.center = Vertex(x,y,z,1);
-	sp.radius = radius;
-	sp.matIdx = currentContext->materials.size() - 1;
-
-	currentContext->spheres.push_back(sp);
+	currentContext->spheres.push_back(
+		Sphere(
+			Vertex(x, y, z, 1),
+			radius,
+			currentContext->materials.size() - 1
+		)
+	);
 }
 
 void sglMaterial(const float r,
@@ -588,16 +588,9 @@ void sglMaterial(const float r,
 	const float T,
 	const float ior)
 {
-	Material em;
-	em.r = r;
-	em.g = g;
-	em.b = b;
-	em.kd = kd;
-	em.ks = ks;
-	em.shine = shine;
-	em.T = T;
-	em.ior = ior;
-	currentContext->materials.push_back(em);
+	currentContext->materials.push_back(
+		Material(r, g, b, kd, ks, shine, T, ior)
+	);
 }
 
 void sglPointLight(const float x,
@@ -609,13 +602,12 @@ void sglPointLight(const float x,
 {
 	if (sglBeginEndRunning || !sglBeginEndSceneRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	Light eM;
-	eM.position = Vertex(x, y, z, 1);
-	eM.r = r;
-	eM.g = g;
-	eM.b = b;
-
-	currentContext->lights.push_back(eM);
+	currentContext->lights.push_back(
+		Light(
+			Vertex(x, y, z, 1),
+			r,g,b
+		)
+	);
 }
 
 void sglRayTraceScene() {
@@ -633,13 +625,10 @@ void sglEnvironmentMap(const int width,
 	float *texels)
 {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
-
-	EnviromentMap eM;
-	eM.width = width;
-	eM.height = height;
-	eM.texels = texels;
 	
-	currentContext->enviromentMaps.push_back(eM);
+	currentContext->enviromentMaps.push_back(
+		EnviromentMap(width, height, texels)
+	);
 }
 
 void sglEmissiveMaterial(const float r,
@@ -651,14 +640,8 @@ void sglEmissiveMaterial(const float r,
 {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return;	}
 
-	EmissiveMaterial eM;
-	eM.r = r;
-	eM.g = g;
-	eM.b = b;
-	eM.c0 = c0;
-	eM.c1 = c1;
-	eM.c2 = c2;
-
-	currentContext->emmisiveMaterials.push_back(eM);
+	currentContext->emmisiveMaterials.push_back(
+		EmissiveMaterial(r,g,b,c0,c1,c2)
+	);
 	currentContext->addingEmissiveMaterial = true;
 }

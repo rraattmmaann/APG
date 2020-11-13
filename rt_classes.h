@@ -2,6 +2,34 @@
 
 #include "vertex.h"
 
+/// Computation of sqrt of a floating point number
+/// ! This function was taken fom the Quake 3 game implementation !
+/// We don't take any credits for this
+///		@param number[in] number to compute sqrt from
+float Q_rsqrt(float number);
+
+/// Computes dot product of two vectors
+///		@param a[in] 1st vector
+///		@param b[in] 2nd vector
+///		@return scalar value, a dot product of two vectors
+inline float dot(Vertex &a, Vertex &b);
+
+/// Computes crossproduct of two vertices
+///		@param a[in] 1st vector
+///		@param b[in] 2nd vector
+///		@param res[in] where to store the result
+void cross(Vertex a, Vertex b, Vertex &res);
+
+/// Normalizes given vector
+///		@param a[in] vector to normalize
+void normalize(Vertex &a);
+
+/// Substracts vector a from vector b
+///		@param a[in] 1st vector
+///		@param b[in] 2nd vector
+///		@return result of substraction of a and b
+Vertex minus(Vertex a, Vertex b);
+
 /// Represents a material of an primitive
 struct Material {
 	float r;
@@ -12,6 +40,19 @@ struct Material {
 	float shine;
 	float T;
 	float ior;
+
+	Material() {}
+
+	Material(float _r, float _g, float _b, float _kd, float _ks, float _shine, float _T, float _ior) {
+		r = _r;
+		g = _g;
+		b = _b;
+		kd = _kd;
+		ks = _ks;
+		shine = _shine;
+		T = _T;
+		ior = _ior;
+	}
 };
 
 /// Represents a light source in the scene
@@ -22,6 +63,13 @@ struct Light {
 	float b;
 
 	Light() {}
+
+	Light(Vertex pos, float _r, float _g, float _b) {
+		position = pos;
+		r = _r;
+		g = _g;
+		b = _b;
+	}
 
 	Light(const Light& rhs) {
 
@@ -54,6 +102,18 @@ struct EmissiveMaterial {
 	float c0;
 	float c1;
 	float c2;
+
+	EmissiveMaterial() {}
+
+	EmissiveMaterial(float _r, float _g, float _b, float _c0, float _c1, float _c2) {
+		r = _r;
+		g = _g;
+		b = _b;
+		c0 = _c0;
+		c1 = _c1;
+		c2 = _c2;
+	}
+
 };
 
 /// Clss representing an intersection point of a ray and a primitive
@@ -91,12 +151,21 @@ struct Intersection {
 	}
 };
 
-/// Class represents an environmental map
+/// Class represents an enviroment map
 struct EnviromentMap {
 	int width;
 	int height;
 	float *texels;
+
+	EnviromentMap() {}
+
+	EnviromentMap(int w, int h, float *tex) {
+		width = w;
+		height = h;
+		texels = tex;
+	}
 };
+
 
 /// Class representing a ray casted from the camera into the scene
 struct Ray {
@@ -128,48 +197,6 @@ struct Ray {
 	}
 };
 
-/// Computes dot product of two vectors
-///		@param a[in] 1st vector
-///		@param b[in] 2nd vector
-///		@return scalar value, a dot product of two vectors
-float dot(Vertex &a, Vertex &b)
-{
-	float product = a.m_data[0] * b.m_data[0] + a.m_data[1] * b.m_data[1] + a.m_data[2] * b.m_data[2];
-	return product;
-}
-
-/// Computes crossproduct of two vertices
-///		@param a[in] 1st vector
-///		@param b[in] 2nd vector
-///		@return vector perpendicular to both input vectors
-Vertex cross(Vertex &a, Vertex &b) {
-	Vertex cross;
-	cross.m_data[0] = a.m_data[1] * b.m_data[2] - a.m_data[2] * b.m_data[1];
-	cross.m_data[1] = a.m_data[2] * b.m_data[0] - a.m_data[0] * b.m_data[2];
-	cross.m_data[2] = a.m_data[0] * b.m_data[1] - a.m_data[1] * b.m_data[0];
-
-	return cross;
-}
-
-/// Normalizes given vector
-///		@param a[in] vector to normalize
-///		@return normalized vector
-Vertex normalize(Vertex a) {
-	float lenght = sqrt((a.m_data[0] * a.m_data[0]) + (a.m_data[1] * a.m_data[1]) + (a.m_data[2] * a.m_data[2]));
-	a.m_data[0] = a.m_data[0] / lenght;
-	a.m_data[1] = a.m_data[1] / lenght;
-	a.m_data[2] = a.m_data[2] / lenght;
-	return a;
-}
-
-Vertex minus(Vertex a, Vertex b) {
-	Vertex ret;
-	ret.m_data[0] = a.m_data[0] - b.m_data[0];
-	ret.m_data[1] = a.m_data[1] - b.m_data[1];
-	ret.m_data[2] = a.m_data[2] - b.m_data[2];
-	return ret;
-}
-
 /// Class representing a sphere within the scene
 struct Sphere {
 
@@ -183,6 +210,12 @@ struct Sphere {
 	Vertex center;
 
 	Sphere() {}
+
+	Sphere(Vertex c, float rad, float idx) {
+		center = c;
+		radius = rad;
+		matIdx = idx;
+	}
 
 	Sphere(const Sphere& rhs) {
 		radius = rhs.radius;
@@ -219,8 +252,6 @@ struct Sphere {
 		dist.m_data[1] = r.origin.m_data[1] - y;
 		dist.m_data[2] = r.origin.m_data[2] - z;
 
-		Vertex normal;
-
 		float a = dot(r.dir, r.dir);
 		float b = 2.0 * dot(dist, r.dir);
 		float c = dot(dist, dist) - radius * radius;
@@ -235,10 +266,10 @@ struct Sphere {
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
 			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
 
-			normal.m_data[0] = Int.position.m_data[0] - x;
-			normal.m_data[1] = Int.position.m_data[1] - y;
-			normal.m_data[2] = Int.position.m_data[2] - z;
-			Int.normal = normalize(normal);
+			Int.normal.m_data[0] = Int.position.m_data[0] - x;
+			Int.normal.m_data[1] = Int.position.m_data[1] - y;
+			Int.normal.m_data[2] = Int.position.m_data[2] - z;
+			normalize(Int.normal);
 		}
 
 		return Int;
@@ -255,6 +286,12 @@ struct Polygon {
 	bool matType;
 
 	Polygon() {}
+
+	Polygon(Vertex _a, Vertex _b, Vertex _c) {
+		a = _a;
+		b = _b;
+		c = _c;
+	}
 
 	Polygon(const Polygon& rhs) {
 		a = rhs.a;
@@ -298,7 +335,7 @@ struct Polygon {
 
 		edge1 = minus(vertex1, vertex0);
 		edge2 = minus(vertex2, vertex0);
-		h = cross(r.dir, edge2);
+		cross(r.dir, edge2, h);
 		a = dot(edge1, h);
 		if (a > -0.000001 && a < 0.000001) {
 			return Int;
@@ -309,7 +346,7 @@ struct Polygon {
 		if (u < 0.0 || u > 1.0) {
 			return Int;
 		}
-		q = cross(s, edge1);
+		cross(s, edge1, q);
 		v = f * dot(r.dir, q);
 		if (v < 0.0 || u + v > 1.0) {
 			return Int;
@@ -321,13 +358,7 @@ struct Polygon {
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
 			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
 			Int.distance = t;
-			Int.normal = normal;
-			return Int;
-		}
-		else {
-
-
-
+			Int.normal = normal;			
 		}
 		return Int;
 	}
@@ -341,10 +372,37 @@ float Q_rsqrt(float number) {
 	x2 = number * 0.5F;
 	y = number;
 	i = *(long *)&y;                       // evil floating point bit level hacking
-	i = 0x5f3759df - (i >> 1);               // what the fuck? 
+	i = 0x5f3759df - (i >> 1);             // what the fuck? 
 	y = *(float *)&i;
 	y = y * (threehalfs - (x2 * y * y));   // 1st iteration
 //	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
 
 	return y;
+}
+
+inline float dot(Vertex &a, Vertex &b)
+{
+	return a.m_data[0] * b.m_data[0] + a.m_data[1] * b.m_data[1] + a.m_data[2] * b.m_data[2];
+}
+
+inline void cross(Vertex a, Vertex b, Vertex &res) {
+	res.m_data[0] = a.m_data[1] * b.m_data[2] - a.m_data[2] * b.m_data[1];
+	res.m_data[1] = a.m_data[2] * b.m_data[0] - a.m_data[0] * b.m_data[2];
+	res.m_data[2] = a.m_data[0] * b.m_data[1] - a.m_data[1] * b.m_data[0];
+}
+
+inline void normalize(Vertex &a) {
+	float lenght = sqrt((a.m_data[0] * a.m_data[0]) + (a.m_data[1] * a.m_data[1]) + (a.m_data[2] * a.m_data[2]));
+	a.m_data[0] = a.m_data[0] / lenght;
+	a.m_data[1] = a.m_data[1] / lenght;
+	a.m_data[2] = a.m_data[2] / lenght;
+}
+
+Vertex minus(Vertex a, Vertex b) {
+
+	return Vertex(
+		a.m_data[0] - b.m_data[0],
+		a.m_data[1] - b.m_data[1],
+		a.m_data[2] - b.m_data[2],
+		1);
 }

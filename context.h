@@ -786,19 +786,11 @@ public:
 		return SGL_NO_ERROR;
 	}
 
-	
-
-	void Normalize(Vertex &v) {
-		float length = Q_rsqrt(
-			(v.m_data[0] * v.m_data[0]) +
-			(v.m_data[1] * v.m_data[1]) +
-			(v.m_data[2] * v.m_data[2]));
-		v.m_data[0] /= length;
-		v.m_data[1] /= length;
-		v.m_data[2] /= length;
-	}
-
-	/// Phongs illumination model
+	/// Phong illumination model
+	///		@param ray[in] ray casted from the viewer(camera) to the primitive
+	///		@param intersection[in] the point of intersection of the ray with the primitive
+	///		@param mat[in] material used for the lightning model
+	///		@return vertex cointaining the resulting color of the pixel (r,g,b,1)
 	Vertex phong(Ray &ray, Intersection &intersection, Material &mat) {
 		Vertex ret;
 		Vertex matColor(mat.r, mat.g, mat.b, 1);
@@ -808,7 +800,8 @@ public:
 			Light l = lights[i];
 			Vertex light(l.r, l.g, l.b, 1);
 
-			Vertex L = normalize(minus( l.position, intersection.position));
+			Vertex L = minus( l.position, intersection.position);
+			normalize(L);
 			Vertex minusL = L*-1;
 			Vertex R = minus(minusL, intersection.normal * dot(minusL, intersection.normal) * 2);
 
@@ -821,8 +814,10 @@ public:
 		return ret;
 	}
 
+	/// Starts ray tracing in the current scene
 	void startRt(){
 
+		// get all matrices ready
 		Matrix invMV = modelViewMatricesStack.back().inverse();
 		Matrix Vp;
 		Vp.m_data[0][0] = viewport.m_data[0][0];
@@ -831,24 +826,24 @@ public:
 		Vp.m_data[1][3] = viewport.m_data[3][0];
 		Matrix MVP = invMV * projectionMatricesStack.back().inverse() * Vp.inverse();
 
-		// urcit paprsky TODO
+		// define the origin of all the rays
 		Ray r;
 		r.origin = invMV * Vertex(0, 0, 0, 1);
 		
-		// projit vsechny pixely a vrhat paprsky
+		// go through all of the pixels and cast rays from the camera through each pixel
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				
-				// urcit paprsky TODO
-				
-				r.dir = normalize(minus(MVP * Vertex(x , y, -1, 1), r.origin));
+				// direction of current ray				
+				r.dir = minus(MVP * Vertex(x , y, -1, 1), r.origin);
+				normalize(r.dir);
 
 				Intersection bestInt;
 				Polygon bestPolygon;
 				Sphere bestSphere;
-				bool polygonWins = true;
+				bool collidedWithPolygon = true;
 
-				// kazdy paprsek zkusit prunik se scenou
+				// try ray - primitive intersection for all objects in the scene
 				for (unsigned int i = 0; i < polygons.size(); ++i) {
 					Intersection Int = polygons[i].intersects(r);
 					if (Int.distance < bestInt.distance) {
@@ -862,72 +857,59 @@ public:
 					if (Int.distance < bestInt.distance) {
 						bestInt = Int;
 						bestSphere = spheres[i];
-						polygonWins = false;
+						collidedWithPolygon = false;
 					}
 				}
 
+				// check if any intersection has been found
 				if (bestInt.distance < INFINITY) {
-					// nalezli jsme prusecik nejblize kamery s danym primitivem
-					// pripocitat svetlo a nakreslit do FB
+					// change the orientation of the ray to save computational time
+					// in phong model
 					r.dir = r.dir * -1;
-					if (polygonWins) {
-						// polygon
-						if (!bestPolygon.matType) {
-							Vertex v = phong(r, bestInt, materials[bestPolygon.matIdx]);
 
-							setPixel(x, y,
-								v.m_data[0],
-								v.m_data[1],
-								v.m_data[2]
-							);
+					if (collidedWithPolygon) {
+						// ray collided with a polygon first
+						if (!bestPolygon.matType) {
+							// the material of the polygon is a default material (Material class)
+							Vertex pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx]);
+
+							setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 						}
 						else {
-							//TODO
-							Vertex v = phong(r, bestInt, materials[bestPolygon.matIdx]);
+							// the material of the polygon is a emissive material (EmissiveMaterial class)
+							Vertex pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx]);// TODO - phong with emissive material
 
-							setPixel(x, y,
-								v.m_data[0], 
-								v.m_data[1],
-								v.m_data[2]
-							);
-							
+							setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 						}
 					}
 					else {
-						// sphere
+						//  ray collided with a sphere first
 
-						Vertex v = phong(r, bestInt, materials[bestSphere.matIdx]);
+						Vertex pixelColor = phong(r, bestInt, materials[bestSphere.matIdx]);
 
-						setPixel(x, y,
-							v.m_data[0] ,
-							v.m_data[1] ,
-							v.m_data[2]
-						);
+						setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 					}					
 				}
 				else {
-					// nastavit do FB pozadi
-					setPixel(x, y,
-						clearColor.r,
-						clearColor.g,
-						clearColor.b
-					);
+					// No intersection with the ray and scene - set background color
+					setPixel(x, y, clearColor.r, clearColor.g, clearColor.b);
 				}
 			}
 		}
-
 	}
 
+	/// Loads 3 vertices from the vertex buffer and stores them as polygons in the scene
 	void storePolygons() {
 		
-		Polygon p;
-		p.a = vertexBuffer[0];
-		p.b = vertexBuffer[1];
-		p.c = vertexBuffer[2];
-		Vertex edge1 = minus(p.b, p.a);
-		Vertex edge2 = minus(p.c, p.a);
-		p.normal = cross(edge1, edge2);
-		p.normal = normalize(p.normal);
+		Polygon p(
+			vertexBuffer[0],
+			vertexBuffer[1],
+			vertexBuffer[2]
+		);
+
+		// get normal of the polygon
+		cross(minus(p.b, p.a), minus(p.c, p.a), p.normal);
+		normalize(p.normal);
 		p.matIdx = (addingEmissiveMaterial) ? emmisiveMaterials.size() - 1 : materials.size() - 1;
 		p.matType = addingEmissiveMaterial;
 		polygons.push_back(p);
