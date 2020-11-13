@@ -327,21 +327,21 @@ struct Polygon {
 	///		@return object of intersection containing information about the intersection, if exists
 	Intersection intersects(Ray &r) {
 		Intersection Int;
-		Vertex vertex0 = a;
-		Vertex vertex1 = b;
-		Vertex vertex2 = c;
+		//Vertex vertex0 = a;
+		//Vertex vertex1 = b;
+		//Vertex vertex2 = c;
 		Vertex edge1, edge2, h, s, q;
-		float a, f, u, v;
+		float _a, f, u, v;
 
-		edge1 = minus(vertex1, vertex0);
-		edge2 = minus(vertex2, vertex0);
+		edge1 = minus(b, a);
+		edge2 = minus(c, a);
 		cross(r.dir, edge2, h);
-		a = dot(edge1, h);
-		if (a > -0.000001 && a < 0.000001) {
+		_a = dot(edge1, h);
+		if (_a > -0.000001 && _a < 0.000001) {
 			return Int;
 		}
-		f = 1.0 / a;
-		s = minus(r.origin, vertex0);
+		f = 1.0 / _a;
+		s = minus(r.origin, a);
 		u = f * dot(s, h);
 		if (u < 0.0 || u > 1.0) {
 			return Int;
