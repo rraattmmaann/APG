@@ -791,13 +791,47 @@ public:
 	///		@param intersection[in] the point of intersection of the ray with the primitive
 	///		@param mat[in] material used for the lightning model
 	///		@return vertex cointaining the resulting color of the pixel (r,g,b,1)
-	Vertex phong(Ray &ray, Intersection &intersection, Material &mat) {
+	Vertex phong(Ray &ray, Intersection &intersection, Material &mat, float xPos) {
 		Vertex ret;
 		Vertex matColor(mat.r, mat.g, mat.b, 1);
 		matColor = matColor * mat.kd;
 
+		
+
 		for (unsigned int i = 0; i < lights.size(); i++) {
 			Light l = lights[i];
+			Vertex toLight = minus(intersection.position, l.position);
+	
+			normalize(toLight);
+			Ray r;
+			r.dir = toLight*-1;
+			r.origin = intersection.position;
+			bool ok = true;
+
+			for (unsigned int j = 0; j < polygons.size(); ++j) {
+				Intersection Int = polygons[j].intersects(r);
+				if (Int.distance != INFINITY) {
+					ok = false;
+					break;
+				}
+			}
+			if (!ok) {
+				continue;
+			}
+			for (unsigned int j = 0; j < spheres.size(); ++j) {
+				if (spheres[j].center.m_data[0] == xPos) {
+					continue;
+				}
+				Intersection Int = spheres[j].intersects(r);
+				if (Int.distance != INFINITY) {
+					ok = false;
+					break;
+				}
+			}
+			if (!ok) {
+				continue;
+			}
+			
 			Vertex light(l.r, l.g, l.b, 1);
 
 			Vertex L = minus( l.position, intersection.position);
@@ -871,13 +905,13 @@ public:
 						// ray collided with a polygon first
 						if (!bestPolygon.matType) {
 							// the material of the polygon is a default material (Material class)
-							Vertex pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx]);
+							Vertex pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx], -1);
 
 							setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 						}
 						else {
 							// the material of the polygon is a emissive material (EmissiveMaterial class)
-							Vertex pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx]);// TODO - phong with emissive material
+							Vertex pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx],-1);// TODO - phong with emissive material
 
 							setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 						}
@@ -885,7 +919,7 @@ public:
 					else {
 						//  ray collided with a sphere first
 
-						Vertex pixelColor = phong(r, bestInt, materials[bestSphere.matIdx]);
+						Vertex pixelColor = phong(r, bestInt, materials[bestSphere.matIdx], bestSphere.center.m_data[0]);
 
 						setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 					}					

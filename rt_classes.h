@@ -176,11 +176,16 @@ struct Ray {
 	/// Normalized direction of the ray
 	Vertex dir;
 
-	Ray() {}
+	int depth;
+
+	Ray() {
+		depth = 8;
+	}
 
 	Ray(const Ray& rhs) {
 		origin = rhs.origin;
 		dir = rhs.dir;
+		depth = rhs.depth;
 	}
 
 	Ray& operator=(const  Ray& rhs) {
@@ -194,6 +199,7 @@ struct Ray {
 	void swap(Ray& rhs) {
 		std::swap(origin, rhs.origin);
 		std::swap(dir, rhs.dir);
+		std::swap(depth, rhs.depth);
 	}
 };
 
@@ -270,6 +276,11 @@ struct Sphere {
 			Int.normal.m_data[1] = Int.position.m_data[1] - y;
 			Int.normal.m_data[2] = Int.position.m_data[2] - z;
 			normalize(Int.normal);
+			
+
+			if (dot(r.dir, Int.normal) > 0.0) {
+				return Intersection();
+			}
 		}
 
 		return Int;
@@ -330,6 +341,11 @@ struct Polygon {
 		//Vertex vertex0 = a;
 		//Vertex vertex1 = b;
 		//Vertex vertex2 = c;
+
+		if (dot(r.dir, normal) > 0.0) {
+			return Int;
+		}
+
 		Vertex edge1, edge2, h, s, q;
 		float _a, f, u, v;
 
@@ -337,7 +353,7 @@ struct Polygon {
 		edge2 = minus(c, a);
 		cross(r.dir, edge2, h);
 		_a = dot(edge1, h);
-		if (_a > -0.000001 && _a < 0.000001) {
+		if (_a > -0.01 && _a < 0.01) {
 			return Int;
 		}
 		f = 1.0 / _a;
@@ -353,7 +369,7 @@ struct Polygon {
 		}
 
 		float t = f * dot(edge2, q);
-		if (t > 0.000001) {
+		if (t > 0.001) {
 			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
 			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
