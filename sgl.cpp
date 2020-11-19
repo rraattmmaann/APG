@@ -8,6 +8,8 @@
 //---------------------------------------------------------------------------
 #define _USE_MATH_DEFINES
 
+#define MAX_RT_RECURSION_DEPTH 8
+
 #include "sgl.h"
 #include "context.h"
 #include <vector>

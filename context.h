@@ -856,6 +856,7 @@ public:
 		Intersection bestInt;
 		Polygon bestPolygon;
 		Sphere bestSphere;
+		Material bestMaterial;
 		bool collidedWithPolygon = true;
 
 		// try ray - primitive intersection for all objects in the scene
@@ -864,6 +865,7 @@ public:
 			if (Int.distance < bestInt.distance) {
 				bestInt = Int;
 				bestPolygon = polygons[i];
+				bestMaterial = materials[polygons[i].matIdx];
 			}
 		}
 
@@ -872,10 +874,14 @@ public:
 			if (Int.distance < bestInt.distance) {
 				bestInt = Int;
 				bestSphere = spheres[i];
+				bestMaterial = materials[spheres[i].matIdx];
 				collidedWithPolygon = false;
 			}
 		}
+
 		Vertex pixelColor;
+		float coef;
+		bool isRefracting = false;
 		// check if any intersection has been found
 		if (bestInt.distance < INFINITY) {
 			// change the orientation of the ray to save computational time
@@ -887,11 +893,20 @@ public:
 				if (!bestPolygon.matType)			// the material of the polygon is a default material (Material class)
 					pixelColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);
 				else								// the material of the polygon is a emissive material (EmissiveMaterial class)
-					pixelColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);// TODO - phong with emissive material				
+					pixelColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);// TODO - phong with emissive material		
+
+				
+				if (materials[bestPolygon.matIdx].ks == 0.0f) return pixelColor;
+
+				coef = materials[bestPolygon.matIdx].ks;
 			}
 			else {
 				//  ray collided with a sphere first
 				pixelColor = phong(temp, bestInt, materials[bestSphere.matIdx], bestSphere.center.m_data[0]);
+				
+				if (materials[bestSphere.matIdx].ks == 0.0f && materials[bestSphere.matIdx].T == 0.0f) return pixelColor;
+				coef = materials[bestSphere.matIdx].ks;
+				if (materials[bestSphere.matIdx].T != 0.0f) isRefracting = true;
 			}
 		}
 		else {
@@ -903,10 +918,41 @@ public:
 		// poslat dalsi paprsek do sceny
 		Ray newRay;
 		newRay.origin = bestInt.position;
-		newRay.dir = (r.dir * -1) - bestInt.normal * 2 * dot(bestInt.normal, r.dir);
+		newRay.dir = (r.dir) - (bestInt.normal * 2 * dot(bestInt.normal, r.dir));
 		normalize(newRay.dir);
 
-		return (depth - 1 < 0) ? pixelColor : pixelColor + traceRay(newRay, depth - 1);
+		if (isRefracting) {
+			Ray refractedRay;
+			
+			Vertex normal = bestInt.normal;
+			//if (r.refracted) normal = normal * -1;
+			float gamma;
+			float d = dot(r.dir, normal);
+			if (d < 0.0f) {
+				gamma = 1.0f / bestMaterial.ior;
+				refractedRay.refracted = true;
+			} else {
+				gamma = bestMaterial.ior;
+				d = -d;
+				normal = normal * -1;
+				refractedRay.refracted = false;
+			}
+			float sqrterm = 1.0f - gamma * gamma * (1.0f - d * d);
+			if (sqrterm > 0.0f) {
+				sqrterm = d * gamma + sqrt(sqrterm);
+				
+				refractedRay.origin = bestInt.position;
+				refractedRay.dir = normal * -sqrterm + r.dir * gamma;
+				
+				normalize(refractedRay.dir);
+				pixelColor = pixelColor * (1 - bestMaterial.T) + traceRay(refractedRay, depth) * bestMaterial.T;
+			}
+		}
+
+		
+		return (depth + 1 > MAX_RT_RECURSION_DEPTH) ?
+			pixelColor * (1-coef) :
+			(pixelColor * (1 - coef) + traceRay(newRay, depth + 1) * coef);
 	}
 
 	/// Starts ray tracing in the current scene
@@ -932,8 +978,7 @@ public:
 				// direction of current ray				
 				r.dir = MVP * Vertex(x , y, -1, 1) - r.origin;
 				normalize(r.dir);
-
-				Vertex pixelColor = traceRay(r, 8);
+				Vertex pixelColor = traceRay(r, 0);
 				setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 			}
 		}

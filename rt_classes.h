@@ -170,6 +170,8 @@ struct Ray {
 	/// Normalized direction of the ray
 	Vertex dir;
 
+	bool refracted = false;
+
 	Ray() {}
 
 	Ray(const Ray& rhs) {
@@ -253,7 +255,16 @@ struct Sphere {
 
 		float t = -1.0;
 		if (disc >= 0) {
-			t = (-b - sqrt(disc)) / (2.0 * a);
+
+			if (r.refracted) {
+				t = (-b + sqrt(disc)) / (2.0 * a);
+			}
+			else {
+				t = (-b - sqrt(disc)) / (2.0 * a);
+				if (t < 0.01f) return Intersection();
+			}
+			
+			
 			//mùže být t záporné?
 			Int.distance = t;
 			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
@@ -264,9 +275,8 @@ struct Sphere {
 			Int.normal.m_data[1] = Int.position.m_data[1] - y;
 			Int.normal.m_data[2] = Int.position.m_data[2] - z;
 			normalize(Int.normal);
-			
 
-			if (dot(r.dir, Int.normal) > 0.0) {
+			if (dot(r.dir, Int.normal) > 0.0f && !r.refracted) {
 				return Intersection();
 			}
 		}
