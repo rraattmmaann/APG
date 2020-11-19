@@ -78,6 +78,20 @@ public:
 		return *this;
 	}
 
+	/// Adds this vector from vector rhs
+	///		@param rhs[in] 2nd vector
+	///		@return result of addition of this vector and rhs
+	Vertex operator+(const Vertex& rhs) {
+		return Vertex(m_data[0] + rhs.m_data[0], m_data[1] + rhs.m_data[1], m_data[2] + rhs.m_data[2], 1);
+	}
+
+	/// Substracts this vector from vector rhs
+	///		@param rhs[in] 2nd vector
+	///		@return result of substraction of this vector and rhs
+	Vertex operator-(const Vertex& rhs) {
+		return Vertex(m_data[0] - rhs.m_data[0], m_data[1] - rhs.m_data[1], m_data[2] - rhs.m_data[2], 1);
+	}
+
 	/* --- FUNCTIONS --- */
 	/// Function for move constructor
 	///		@param rhs[in] reference to the vertex with which data should be swapped 

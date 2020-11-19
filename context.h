@@ -800,7 +800,7 @@ public:
 
 		for (unsigned int i = 0; i < lights.size(); i++) {
 			Light l = lights[i];
-			Vertex toLight = minus(intersection.position, l.position);
+			Vertex toLight = intersection.position - l.position;
 	
 			normalize(toLight);
 			Ray r;
@@ -834,10 +834,10 @@ public:
 			
 			Vertex light(l.r, l.g, l.b, 1);
 
-			Vertex L = minus( l.position, intersection.position);
+			Vertex L = l.position - intersection.position;
 			normalize(L);
 			Vertex minusL = L*-1;
-			Vertex R = minus(minusL, intersection.normal * dot(minusL, intersection.normal) * 2);
+			Vertex R = minusL - intersection.normal * dot(minusL, intersection.normal) * 2;
 
 			Vertex v = matColor * light * std::max(0.0f, dot(intersection.normal, L));
 			v += std::pow(std::max(0.0f, dot(R, ray.dir)), mat.shine) * mat.ks;
@@ -846,6 +846,70 @@ public:
 		}
 		
 		return ret;
+	}
+
+	/// Accepts given ray, determines the color of point in the scene
+	/// and return given color, alternatively sends reflected ray
+	/// 
+	Vertex traceRay(Ray &r) {
+
+		Intersection bestInt;
+		Polygon bestPolygon;
+		Sphere bestSphere;
+		bool collidedWithPolygon = true;
+
+		// try ray - primitive intersection for all objects in the scene
+		for (unsigned int i = 0; i < polygons.size(); ++i) {
+			Intersection Int = polygons[i].intersects(r);
+			if (Int.distance < bestInt.distance) {
+				bestInt = Int;
+				bestPolygon = polygons[i];
+			}
+		}
+
+		for (unsigned int i = 0; i < spheres.size(); ++i) {
+			Intersection Int = spheres[i].intersects(r);
+			if (Int.distance < bestInt.distance) {
+				bestInt = Int;
+				bestSphere = spheres[i];
+				collidedWithPolygon = false;
+			}
+		}
+		Vertex pixelColor;
+		// check if any intersection has been found
+		if (bestInt.distance < INFINITY) {
+			// change the orientation of the ray to save computational time
+			// in phong model
+			r.dir = r.dir * -1; // TODO - V POZDEJSICH REKURZICH BY SE ASI DELAT NEMELO???
+
+			if (collidedWithPolygon) {
+				// ray collided with a polygon first
+				if (!bestPolygon.matType) {
+					// the material of the polygon is a default material (Material class)
+					pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx], -1);
+				}
+				else {
+					// the material of the polygon is a emissive material (EmissiveMaterial class)
+					pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx], -1);// TODO - phong with emissive material
+				}
+			}
+			else {
+				//  ray collided with a sphere first
+				pixelColor = phong(r, bestInt, materials[bestSphere.matIdx], bestSphere.center.m_data[0]);
+			}
+		}
+		else {
+			// No intersection with the ray and scene - set background color
+			return Vertex(clearColor.r, clearColor.g, clearColor.b, 1);
+		}
+
+		r.depth -= 1;
+
+		// TODO urcit novy paprsek
+		// poslat dalsi paprsek do sceny
+		Ray newRay;
+
+		return (r.depth - 1 < 0) ? pixelColor : pixelColor + traceRay(newRay);
 	}
 
 	/// Starts ray tracing in the current scene
@@ -869,65 +933,11 @@ public:
 			for (int x = 0; x < width; x++) {
 				
 				// direction of current ray				
-				r.dir = minus(MVP * Vertex(x , y, -1, 1), r.origin);
+				r.dir = MVP * Vertex(x , y, -1, 1) - r.origin;
 				normalize(r.dir);
 
-				Intersection bestInt;
-				Polygon bestPolygon;
-				Sphere bestSphere;
-				bool collidedWithPolygon = true;
-
-				// try ray - primitive intersection for all objects in the scene
-				for (unsigned int i = 0; i < polygons.size(); ++i) {
-					Intersection Int = polygons[i].intersects(r);
-					if (Int.distance < bestInt.distance) {
-						bestInt = Int;
-						bestPolygon = polygons[i];
-					}
-				}
-
-				for (unsigned int i = 0; i < spheres.size(); ++i) {
-					Intersection Int = spheres[i].intersects(r);
-					if (Int.distance < bestInt.distance) {
-						bestInt = Int;
-						bestSphere = spheres[i];
-						collidedWithPolygon = false;
-					}
-				}
-
-				// check if any intersection has been found
-				if (bestInt.distance < INFINITY) {
-					// change the orientation of the ray to save computational time
-					// in phong model
-					r.dir = r.dir * -1;
-
-					if (collidedWithPolygon) {
-						// ray collided with a polygon first
-						if (!bestPolygon.matType) {
-							// the material of the polygon is a default material (Material class)
-							Vertex pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx], -1);
-
-							setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
-						}
-						else {
-							// the material of the polygon is a emissive material (EmissiveMaterial class)
-							Vertex pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx],-1);// TODO - phong with emissive material
-
-							setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
-						}
-					}
-					else {
-						//  ray collided with a sphere first
-
-						Vertex pixelColor = phong(r, bestInt, materials[bestSphere.matIdx], bestSphere.center.m_data[0]);
-
-						setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
-					}					
-				}
-				else {
-					// No intersection with the ray and scene - set background color
-					setPixel(x, y, clearColor.r, clearColor.g, clearColor.b);
-				}
+				Vertex pixelColor = traceRay(r);
+				setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 			}
 		}
 	}
@@ -942,7 +952,7 @@ public:
 		);
 
 		// get normal of the polygon
-		cross(minus(p.b, p.a), minus(p.c, p.a), p.normal);
+		cross(p.b - p.a, p.c - p.a, p.normal);
 		normalize(p.normal);
 		p.matIdx = (addingEmissiveMaterial) ? emmisiveMaterials.size() - 1 : materials.size() - 1;
 		p.matType = addingEmissiveMaterial;

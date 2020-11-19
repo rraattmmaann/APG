@@ -24,12 +24,6 @@ void cross(Vertex a, Vertex b, Vertex &res);
 ///		@param a[in] vector to normalize
 void normalize(Vertex &a);
 
-/// Substracts vector a from vector b
-///		@param a[in] 1st vector
-///		@param b[in] 2nd vector
-///		@return result of substraction of a and b
-Vertex minus(Vertex a, Vertex b);
-
 /// Represents a material of an primitive
 struct Material {
 	float r;
@@ -349,15 +343,15 @@ struct Polygon {
 		Vertex edge1, edge2, h, s, q;
 		float _a, f, u, v;
 
-		edge1 = minus(b, a);
-		edge2 = minus(c, a);
+		edge1 = b - a;
+		edge2 = c - a;
 		cross(r.dir, edge2, h);
 		_a = dot(edge1, h);
 		if (_a > -0.01 && _a < 0.01) {
 			return Int;
 		}
 		f = 1.0 / _a;
-		s = minus(r.origin, a);
+		s = r.origin - a;
 		u = f * dot(s, h);
 		if (u < 0.0 || u > 1.0) {
 			return Int;
@@ -412,13 +406,4 @@ inline void normalize(Vertex &a) {
 	a.m_data[0] = a.m_data[0] / lenght;
 	a.m_data[1] = a.m_data[1] / lenght;
 	a.m_data[2] = a.m_data[2] / lenght;
-}
-
-Vertex minus(Vertex a, Vertex b) {
-
-	return Vertex(
-		a.m_data[0] - b.m_data[0],
-		a.m_data[1] - b.m_data[1],
-		a.m_data[2] - b.m_data[2],
-		1);
 }
