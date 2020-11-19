@@ -170,16 +170,11 @@ struct Ray {
 	/// Normalized direction of the ray
 	Vertex dir;
 
-	int depth;
-
-	Ray() {
-		depth = 8;
-	}
+	Ray() {}
 
 	Ray(const Ray& rhs) {
 		origin = rhs.origin;
 		dir = rhs.dir;
-		depth = rhs.depth;
 	}
 
 	Ray& operator=(const  Ray& rhs) {
@@ -193,7 +188,6 @@ struct Ray {
 	void swap(Ray& rhs) {
 		std::swap(origin, rhs.origin);
 		std::swap(dir, rhs.dir);
-		std::swap(depth, rhs.depth);
 	}
 };
 

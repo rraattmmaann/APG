@@ -851,7 +851,7 @@ public:
 	/// Accepts given ray, determines the color of point in the scene
 	/// and return given color, alternatively sends reflected ray
 	/// 
-	Vertex traceRay(Ray &r) {
+	Vertex traceRay(Ray &r, int depth) {
 
 		Intersection bestInt;
 		Polygon bestPolygon;
@@ -880,22 +880,18 @@ public:
 		if (bestInt.distance < INFINITY) {
 			// change the orientation of the ray to save computational time
 			// in phong model
-			r.dir = r.dir * -1; // TODO - V POZDEJSICH REKURZICH BY SE ASI DELAT NEMELO???
+			Ray temp = r;
+			temp.dir = temp.dir * -1; // TODO - V POZDEJSICH REKURZICH BY SE ASI DELAT NEMELO???
 
-			if (collidedWithPolygon) {
-				// ray collided with a polygon first
-				if (!bestPolygon.matType) {
-					// the material of the polygon is a default material (Material class)
-					pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx], -1);
-				}
-				else {
-					// the material of the polygon is a emissive material (EmissiveMaterial class)
-					pixelColor = phong(r, bestInt, materials[bestPolygon.matIdx], -1);// TODO - phong with emissive material
-				}
+			if (collidedWithPolygon) {				// ray collided with a polygon first				
+				if (!bestPolygon.matType)			// the material of the polygon is a default material (Material class)
+					pixelColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);
+				else								// the material of the polygon is a emissive material (EmissiveMaterial class)
+					pixelColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);// TODO - phong with emissive material				
 			}
 			else {
 				//  ray collided with a sphere first
-				pixelColor = phong(r, bestInt, materials[bestSphere.matIdx], bestSphere.center.m_data[0]);
+				pixelColor = phong(temp, bestInt, materials[bestSphere.matIdx], bestSphere.center.m_data[0]);
 			}
 		}
 		else {
@@ -903,13 +899,14 @@ public:
 			return Vertex(clearColor.r, clearColor.g, clearColor.b, 1);
 		}
 
-		r.depth -= 1;
-
 		// TODO urcit novy paprsek
 		// poslat dalsi paprsek do sceny
 		Ray newRay;
+		newRay.origin = bestInt.position;
+		newRay.dir = (r.dir * -1) - bestInt.normal * 2 * dot(bestInt.normal, r.dir);
+		normalize(newRay.dir);
 
-		return (r.depth - 1 < 0) ? pixelColor : pixelColor + traceRay(newRay);
+		return (depth - 1 < 0) ? pixelColor : pixelColor + traceRay(newRay, depth - 1);
 	}
 
 	/// Starts ray tracing in the current scene
@@ -936,7 +933,7 @@ public:
 				r.dir = MVP * Vertex(x , y, -1, 1) - r.origin;
 				normalize(r.dir);
 
-				Vertex pixelColor = traceRay(r);
+				Vertex pixelColor = traceRay(r, 8);
 				setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 			}
 		}
