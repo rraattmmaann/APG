@@ -170,6 +170,7 @@ struct Ray {
 	/// Normalized direction of the ray
 	Vertex dir;
 
+	/// Flag indicating refracted ray
 	bool refracted = false;
 
 	Ray() {}
@@ -177,6 +178,7 @@ struct Ray {
 	Ray(const Ray& rhs) {
 		origin = rhs.origin;
 		dir = rhs.dir;
+		refracted = rhs.refracted;
 	}
 
 	Ray& operator=(const  Ray& rhs) {
@@ -190,6 +192,7 @@ struct Ray {
 	void swap(Ray& rhs) {
 		std::swap(origin, rhs.origin);
 		std::swap(dir, rhs.dir);
+		std::swap(refracted, rhs.refracted);
 	}
 };
 
@@ -242,7 +245,7 @@ struct Sphere {
 		float y = center.m_data[1];
 		float z = center.m_data[2];
 		Intersection Int;
-		//Vertex dist = r.origin - center;
+
 		Vertex dist;
 		dist.m_data[0] = r.origin.m_data[0] - x;
 		dist.m_data[1] = r.origin.m_data[1] - y;
@@ -256,14 +259,12 @@ struct Sphere {
 		float t = -1.0;
 		if (disc >= 0) {
 
-			if (r.refracted) {
-				t = (-b + sqrt(disc)) / (2.0 * a);
-			}
-			else {
-				t = (-b - sqrt(disc)) / (2.0 * a);
-				if (t < 0.01f) return Intersection();
-			}
-			
+			if (r.refracted)
+				t = (-b + sqrt(disc)) / (2.0 * a);	// For refracted rays we need the further intersection	
+			else 
+				t = (-b - sqrt(disc)) / (2.0 * a);	// The closest int. otherwise
+				
+			if (t < 0.01f) return Intersection(); // Eliminates the float inacurracy while computing intersection
 			
 			//mùže být t záporné?
 			Int.distance = t;
@@ -276,7 +277,7 @@ struct Sphere {
 			Int.normal.m_data[2] = Int.position.m_data[2] - z;
 			normalize(Int.normal);
 
-			if (dot(r.dir, Int.normal) > 0.0f && !r.refracted) {
+			if (dot(r.dir, Int.normal) > 0.0f && !r.refracted) { // Backface culling only for primary and reflected rays
 				return Intersection();
 			}
 		}
@@ -336,9 +337,6 @@ struct Polygon {
 	///		@return object of intersection containing information about the intersection, if exists
 	Intersection intersects(Ray &r) {
 		Intersection Int;
-		//Vertex vertex0 = a;
-		//Vertex vertex1 = b;
-		//Vertex vertex2 = c;
 
 		if (dot(r.dir, normal) > 0.0) {
 			return Int;

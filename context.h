@@ -790,47 +790,49 @@ public:
 	///		@param ray[in] ray casted from the viewer(camera) to the primitive
 	///		@param intersection[in] the point of intersection of the ray with the primitive
 	///		@param mat[in] material used for the lightning model
+	///		@param xPos[in] x-center-coordinate of the sphere where is the intersection 
 	///		@return vertex cointaining the resulting color of the pixel (r,g,b,1)
 	Vertex phong(Ray &ray, Intersection &intersection, Material &mat, float xPos) {
+		
 		Vertex ret;
 		Vertex matColor(mat.r, mat.g, mat.b, 1);
 		matColor = matColor * mat.kd;
 
-		
-
+		// Go through each light in the scene and sum their influence on given point
 		for (unsigned int i = 0; i < lights.size(); i++) {
 			Light l = lights[i];
-			Vertex toLight = intersection.position - l.position;
-	
+			Vertex toLight = intersection.position - l.position;	
 			normalize(toLight);
+
 			Ray r;
 			r.dir = toLight*-1;
 			r.origin = intersection.position;
-			bool ok = true;
+			
+			// Check if the light source is shadowed by an object
+			// if it is hidden, continue with next light source
+			bool lightSourceHidden = true;
 
 			for (unsigned int j = 0; j < polygons.size(); ++j) {
 				Intersection Int = polygons[j].intersects(r);
 				if (Int.distance != INFINITY) {
-					ok = false;
+					lightSourceHidden = false;
 					break;
 				}
 			}
-			if (!ok) {
-				continue;
-			}
+			if (!lightSourceHidden) continue;
+				
 			for (unsigned int j = 0; j < spheres.size(); ++j) {
 				if (spheres[j].center.m_data[0] == xPos) {
-					continue;
+					continue; // eliminate self intersection for spheres
 				}
 				Intersection Int = spheres[j].intersects(r);
 				if (Int.distance != INFINITY) {
-					ok = false;
+					lightSourceHidden = false;
 					break;
 				}
 			}
-			if (!ok) {
-				continue;
-			}
+			if (!lightSourceHidden)	continue;
+
 			
 			Vertex light(l.r, l.g, l.b, 1);
 
@@ -839,8 +841,8 @@ public:
 			Vertex minusL = L*-1;
 			Vertex R = minusL - intersection.normal * dot(minusL, intersection.normal) * 2;
 
-			Vertex v = matColor * light * std::max(0.0f, dot(intersection.normal, L));
-			v += std::pow(std::max(0.0f, dot(R, ray.dir)), mat.shine) * mat.ks;
+			Vertex v = matColor * light * std::max(0.0f, dot(intersection.normal, L));	// diffuse
+			v += std::pow(std::max(0.0f, dot(R, ray.dir)), mat.shine) * mat.ks;			// specular
 
 			ret += v;
 		}
@@ -853,11 +855,11 @@ public:
 	/// 
 	Vertex traceRay(Ray &r, int depth) {
 
-		Intersection bestInt;
-		Polygon bestPolygon;
-		Sphere bestSphere;
-		Material bestMaterial;
-		bool collidedWithPolygon = true;
+		Intersection	bestInt;
+		Polygon			bestPolygon;
+		Sphere			bestSphere;
+		Material		bestMaterial;
+		bool			collidedWithPolygon = true;
 
 		// try ray - primitive intersection for all objects in the scene
 		for (unsigned int i = 0; i < polygons.size(); ++i) {
@@ -879,34 +881,43 @@ public:
 			}
 		}
 
-		Vertex pixelColor;
+		Vertex hitColor;
 		float coef;
 		bool isRefracting = false;
+		
 		// check if any intersection has been found
 		if (bestInt.distance < INFINITY) {
-			// change the orientation of the ray to save computational time
-			// in phong model
+			
+			// change the orientation of the ray to save computational time in phong model
 			Ray temp = r;
 			temp.dir = temp.dir * -1; // TODO - V POZDEJSICH REKURZICH BY SE ASI DELAT NEMELO???
 
 			if (collidedWithPolygon) {				// ray collided with a polygon first				
 				if (!bestPolygon.matType)			// the material of the polygon is a default material (Material class)
-					pixelColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);
+					hitColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);
 				else								// the material of the polygon is a emissive material (EmissiveMaterial class)
-					pixelColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);// TODO - phong with emissive material		
+					hitColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);// TODO - phong with emissive material		
 
 				
-				if (materials[bestPolygon.matIdx].ks == 0.0f) return pixelColor;
+				if (materials[bestPolygon.matIdx].ks == 0.0f && materials[bestPolygon.matIdx].T == 0.0f)
+					return hitColor;				// material specular coef is 0 -> the ray will not reflect IF the material is not transparent
+
+				if (materials[bestPolygon.matIdx].T != 0.0f)
+					isRefracting = true;			// material is transparent - we need to generate refracted rays
 
 				coef = materials[bestPolygon.matIdx].ks;
 			}
 			else {
 				//  ray collided with a sphere first
-				pixelColor = phong(temp, bestInt, materials[bestSphere.matIdx], bestSphere.center.m_data[0]);
+				hitColor = phong(temp, bestInt, materials[bestSphere.matIdx], bestSphere.center.m_data[0]);
 				
-				if (materials[bestSphere.matIdx].ks == 0.0f && materials[bestSphere.matIdx].T == 0.0f) return pixelColor;
+				if (materials[bestSphere.matIdx].ks == 0.0f && materials[bestSphere.matIdx].T == 0.0f)
+					return hitColor;	// material specular coef is 0 -> the ray will not reflect IF the material is not transparent
+				
+				if (materials[bestSphere.matIdx].T != 0.0f)
+					isRefracting = true;	// material is transparent - we need to generate refracted rays
+
 				coef = materials[bestSphere.matIdx].ks;
-				if (materials[bestSphere.matIdx].T != 0.0f) isRefracting = true;
 			}
 		}
 		else {
@@ -914,18 +925,17 @@ public:
 			return Vertex(clearColor.r, clearColor.g, clearColor.b, 1);
 		}
 
-		// TODO urcit novy paprsek
-		// poslat dalsi paprsek do sceny
+		// Compute reflected ray
 		Ray newRay;
 		newRay.origin = bestInt.position;
 		newRay.dir = (r.dir) - (bestInt.normal * 2 * dot(bestInt.normal, r.dir));
 		normalize(newRay.dir);
 
 		if (isRefracting) {
+			// Indicated that we need to send refracted rays from the current intersection point
 			Ray refractedRay;
 			
 			Vertex normal = bestInt.normal;
-			//if (r.refracted) normal = normal * -1;
 			float gamma;
 			float d = dot(r.dir, normal);
 			if (d < 0.0f) {
@@ -942,17 +952,19 @@ public:
 				sqrterm = d * gamma + sqrt(sqrterm);
 				
 				refractedRay.origin = bestInt.position;
-				refractedRay.dir = normal * -sqrterm + r.dir * gamma;
-				
+				refractedRay.dir = normal * -sqrterm + r.dir * gamma;				
 				normalize(refractedRay.dir);
-				pixelColor = pixelColor * (1 - bestMaterial.T) + traceRay(refractedRay, depth) * bestMaterial.T;
+
+				hitColor = hitColor * (1 - bestMaterial.T) + traceRay(refractedRay, depth) * bestMaterial.T;
 			}
 		}
-
-		
+				
 		return (depth + 1 > MAX_RT_RECURSION_DEPTH) ?
-			pixelColor * (1-coef) :
-			(pixelColor * (1 - coef) + traceRay(newRay, depth + 1) * coef);
+			// We reached max recursion depth - return current material color only 
+			hitColor * (1-coef) :		
+
+			// Max depth has not been reached - combine pixel color with output of further recursion
+			(hitColor * (1 - coef) + traceRay(newRay, depth + 1) * coef);	
 	}
 
 	/// Starts ray tracing in the current scene
@@ -978,6 +990,8 @@ public:
 				// direction of current ray				
 				r.dir = MVP * Vertex(x , y, -1, 1) - r.origin;
 				normalize(r.dir);
+
+				// Trace this ray and get the color of pixel on (x,y)
 				Vertex pixelColor = traceRay(r, 0);
 				setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);
 			}
