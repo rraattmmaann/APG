@@ -71,16 +71,22 @@ public:
 	/// Vector of vertices, fills withing the glBegin() and glEnd() sequence
 	std::vector<Vertex> vertexBuffer;
 
+	/// Vector containing all polygon in the scene
 	std::vector<Polygon> polygons;
 
+	/// Vector containing all light sources in the scene
 	std::vector<Light> lights;
 
+	/// Vector containing all emissive materials present in the scene
 	std::vector<EmissiveMaterial> emmisiveMaterials;
 
+	/// Vector containing all environment maps present in the scene
 	std::vector<EnviromentMap> enviromentMaps;
 
+	/// Vector containing all spheres present in the scene
 	std::vector<Sphere> spheres;
 
+	/// Vector containing all materials present in the scene
 	std::vector<Material> materials;
 
 	bool addingEmissiveMaterial = false;
@@ -813,8 +819,10 @@ public:
 			bool lightSourceHidden = true;
 
 			for (unsigned int j = 0; j < polygons.size(); ++j) {
+				/*if (poly == polygons[j])
+					continue;*/
 				Intersection Int = polygons[j].intersects(r);
-				if (Int.distance != INFINITY) {
+				if (Int.distance != INFINITY && materials[polygons[j].matIdx].ks == 0.0f) {
 					lightSourceHidden = false;
 					break;
 				}
@@ -990,7 +998,8 @@ public:
 				// direction of current ray				
 				r.dir = MVP * Vertex(x , y, -1, 1) - r.origin;
 				normalize(r.dir);
-
+				if (x == 110 && y == 512 - 350)
+					std::cout << "a";
 				// Trace this ray and get the color of pixel on (x,y)
 				Vertex pixelColor = traceRay(r, 0);
 				setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);

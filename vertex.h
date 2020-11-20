@@ -92,6 +92,8 @@ public:
 		return Vertex(m_data[0] - rhs.m_data[0], m_data[1] - rhs.m_data[1], m_data[2] - rhs.m_data[2], 1);
 	}
 
+	
+
 	/* --- FUNCTIONS --- */
 	/// Function for move constructor
 	///		@param rhs[in] reference to the vertex with which data should be swapped 
@@ -108,3 +110,14 @@ public:
 		std::cout << " ]\n";
 	}
 };
+
+bool operator==(const Vertex& lhs, const Vertex& rhs) {
+	if (lhs.m_data[0] != rhs.m_data[0]) return false;
+	else if (lhs.m_data[1] != rhs.m_data[1]) return false;
+	else if (lhs.m_data[2] != rhs.m_data[2]) return false;
+	return true;
+}
+
+bool operator!=(const Vertex& lhs, const Vertex& rhs) {
+	return !(rhs == lhs);
+}

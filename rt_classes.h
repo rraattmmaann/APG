@@ -24,7 +24,7 @@ void cross(Vertex a, Vertex b, Vertex &res);
 ///		@param a[in] vector to normalize
 void normalize(Vertex &a);
 
-/// Represents a material of an primitive
+/// Represents a material of an prpimitive
 struct Material {
 	float r;
 	float g;
@@ -375,6 +375,14 @@ struct Polygon {
 		return Int;
 	}
 };
+
+bool operator==(const Polygon& lhs, const Polygon& rhs) {
+	if (lhs.a != rhs.a) return false;
+	else if (lhs.b != rhs.b) return false;
+	else if (lhs.c != rhs.c) return false;
+	else if (lhs.normal != rhs.normal) return false;
+	return true;
+}
 
 float Q_rsqrt(float number) {
 	long i;
