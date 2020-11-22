@@ -12,17 +12,23 @@ float Q_rsqrt(float number);
 ///		@param a[in] 1st vector
 ///		@param b[in] 2nd vector
 ///		@return scalar value, a dot product of two vectors
-inline float dot(Vertex &a, Vertex &b);
+inline float dot(const Vertex &a, const Vertex &b);
 
 /// Computes crossproduct of two vertices
 ///		@param a[in] 1st vector
 ///		@param b[in] 2nd vector
 ///		@param res[in] where to store the result
-void cross(Vertex a, Vertex b, Vertex &res);
+void cross(const Vertex &a, const  Vertex &b, Vertex &res);
 
 /// Normalizes given vector
 ///		@param a[in] vector to normalize
 void normalize(Vertex &a);
+
+/// Returns the distance between 2 vertices (i.e. the length of vector)
+///		@param a[in] 1st vector
+///		@param b[in] 2nd vector
+///		@return scalar value, a distance of given 2 vertices
+float vectorLength(const Vertex& a, const Vertex& b);
 
 /// Represents a material of an prpimitive
 struct Material {
@@ -175,6 +181,11 @@ struct Ray {
 
 	Ray() {}
 
+	Ray(Vertex _origin, Vertex _dir) {
+		origin = _origin;
+		dir = _dir;
+	}
+
 	Ray(const Ray& rhs) {
 		origin = rhs.origin;
 		dir = rhs.dir;
@@ -210,7 +221,7 @@ struct Sphere {
 
 	Sphere() {}
 
-	Sphere(Vertex c, float rad, float idx) {
+	Sphere(const Vertex c, float rad, float idx) {
 		center = c;
 		radius = rad;
 		matIdx = idx;
@@ -239,7 +250,7 @@ struct Sphere {
 	/// Computes intersection of this object with given ray
 	///		@param ray[in] input ray to check intersection with
 	///		@return object of intersection containing information about the intersection, if exists
-	Intersection intersects(Ray &r) {
+	Intersection intersects(const Ray &r) {
 
 		float x = center.m_data[0];
 		float y = center.m_data[1];
@@ -252,22 +263,22 @@ struct Sphere {
 		dist.m_data[2] = r.origin.m_data[2] - z;
 
 		float a = dot(r.dir, r.dir);
-		float b = 2.0 * dot(dist, r.dir);
+		float b = 2.0f * dot(dist, r.dir);
 		float c = dot(dist, dist) - radius * radius;
-		float disc = b * b - 4 * a * c;
+		float disc = b * b - 4.0f * a * c;
 
 		float t = -1.0;
 		if (disc >= 0) {
 
 			if (r.refracted)
-				t = (-b + sqrt(disc)) / (2.0 * a);	// For refracted rays we need the further intersection	
+				t = (-b + sqrt(disc)) / (2.0f * a);	// For refracted rays we need the further intersection	
 			else 
-				t = (-b - sqrt(disc)) / (2.0 * a);	// The closest int. otherwise
+				t = (-b - sqrt(disc)) / (2.0f * a);	// The closest int. otherwise
 				
 			if (t < 0.01f) return Intersection(); // Eliminates the float inacurracy while computing intersection
 			
 			//mùe bıt t záporné?
-			Int.distance = t;
+			
 			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
 			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
@@ -276,6 +287,8 @@ struct Sphere {
 			Int.normal.m_data[1] = Int.position.m_data[1] - y;
 			Int.normal.m_data[2] = Int.position.m_data[2] - z;
 			normalize(Int.normal);
+
+			Int.distance = t;
 
 			if (dot(r.dir, Int.normal) > 0.0f && !r.refracted) { // Backface culling only for primary and reflected rays
 				return Intersection();
@@ -338,7 +351,7 @@ struct Polygon {
 	Intersection intersects(Ray &r) {
 		Intersection Int;
 
-		if (dot(r.dir, normal) > 0.0) {
+		if (dot(r.dir, normal) > 0.0f) {
 			return Int;
 		}
 
@@ -349,23 +362,23 @@ struct Polygon {
 		edge2 = c - a;
 		cross(r.dir, edge2, h);
 		_a = dot(edge1, h);
-		if (_a > -0.01 && _a < 0.01) {
+		if (_a > -0.01f && _a < 0.01f) {
 			return Int;
 		}
-		f = 1.0 / _a;
+		f = 1.0f / _a;
 		s = r.origin - a;
 		u = f * dot(s, h);
-		if (u < 0.0 || u > 1.0) {
+		if (u < 0.0f || u > 1.0f) {
 			return Int;
 		}
 		cross(s, edge1, q);
 		v = f * dot(r.dir, q);
-		if (v < 0.0 || u + v > 1.0) {
+		if (v < 0.0f || u + v > 1.0f) {
 			return Int;
 		}
 
 		float t = f * dot(edge2, q);
-		if (t > 0.001) {
+		if (t > 0.001f) {
 			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
 			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
@@ -389,7 +402,7 @@ float Q_rsqrt(float number) {
 	float x2, y;
 	const float threehalfs = 1.5F;
 
-	x2 = number * 0.5F;
+	x2 = number * 0.5f;
 	y = number;
 	i = *(long *)&y;                       // evil floating point bit level hacking
 	i = 0x5f3759df - (i >> 1);             // what the fuck? 
@@ -400,12 +413,12 @@ float Q_rsqrt(float number) {
 	return y;
 }
 
-inline float dot(Vertex &a, Vertex &b)
+inline float dot(const Vertex &a, const Vertex &b)
 {
 	return a.m_data[0] * b.m_data[0] + a.m_data[1] * b.m_data[1] + a.m_data[2] * b.m_data[2];
 }
 
-inline void cross(Vertex a, Vertex b, Vertex &res) {
+inline void cross(const Vertex &a, const Vertex &b, Vertex &res) {
 	res.m_data[0] = a.m_data[1] * b.m_data[2] - a.m_data[2] * b.m_data[1];
 	res.m_data[1] = a.m_data[2] * b.m_data[0] - a.m_data[0] * b.m_data[2];
 	res.m_data[2] = a.m_data[0] * b.m_data[1] - a.m_data[1] * b.m_data[0];
@@ -416,4 +429,11 @@ inline void normalize(Vertex &a) {
 	a.m_data[0] = a.m_data[0] / lenght;
 	a.m_data[1] = a.m_data[1] / lenght;
 	a.m_data[2] = a.m_data[2] / lenght;
+}
+
+float vectorLength(const Vertex& a, const Vertex& b) {
+	return sqrt((a.m_data[0] - b.m_data[0]) * (a.m_data[0] - b.m_data[0]) +
+		(a.m_data[1] - b.m_data[1]) * (a.m_data[1] - b.m_data[1]) +
+		(a.m_data[2] - b.m_data[2]) * (a.m_data[2] - b.m_data[2])
+	);
 }

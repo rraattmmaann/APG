@@ -149,7 +149,7 @@ public:
 		float y1;
 		float x2;
 		float y2;
-		int steps = 40 * (to - from) / (2 * M_PI);
+		int steps = 40.0f * (to - from) / (2.0f * M_PI);
 
 		if (areaMode == SGL_FILL) {
 			sglBegin(SGL_POLYGON);
@@ -191,9 +191,9 @@ public:
 		}
 
 		float x2, y2;
-		float alpha = 2 * M_PI / 40;
-		float x1 = 1;
-		float y1 = 0;
+		float alpha = 2.0f * M_PI / 40.0f;
+		float x1 = 1.0f;
+		float y1 = 0.0f;
 		float CA = cos(alpha);
 		float SA = sin(alpha);
 
@@ -232,7 +232,7 @@ public:
 		// Compute the transformed circle center
 		Vertex stred(xs, ys, zs, 1);
 		stred = (P * (MV * stred));
-		stred = stred * (1 / stred.m_data[3]);
+		stred = stred * (1.0f / stred.m_data[3]);
 		int stx = viewport.m_data[0][0] * stred.m_data[0] + viewport.m_data[2][0];
 		int sty = viewport.m_data[1][0] * stred.m_data[1] + viewport.m_data[3][0];
 
@@ -386,7 +386,7 @@ public:
 		for (Vertex vert : vertexBuffer) {
 
 			Vertex res = PVM * vert;
-			res = res * (1 / res.m_data[3]);
+			res = res * (1.0f / res.m_data[3]);
 
 			int x = static_cast<int>(viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0]);
 			int y = static_cast<int>(viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0]);
@@ -394,12 +394,12 @@ public:
 			int currPointSize = pointSize;
 
 			if (currPointSize % 2 == 0) {
-				x = x - currPointSize * 0.5 - 1;
-				y = y - currPointSize * 0.5 - 1;
+				x = x - currPointSize * 0.5f - 1.f;
+				y = y - currPointSize * 0.5f - 1.f;
 			}
 			else {
-				x = x - (currPointSize - 1) * 0.5;
-				y = y - (currPointSize - 1) * 0.5;
+				x = x - (currPointSize - 1.f) * 0.5f;
+				y = y - (currPointSize - 1.f) * 0.5f;
 			}
 
 			for (int a = 0; a < currPointSize; a++) {
@@ -421,9 +421,9 @@ public:
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
 			v1 = PVM * v1;
-			v1 = v1 * (1 / v1.m_data[3]);
+			v1 = v1 * (1.0f / v1.m_data[3]);
 			v2 = PVM * v2;
-			v2 = v2 * (1 / v2.m_data[3]);
+			v2 = v2 * (1.0f / v2.m_data[3]);
 
 			bresenhamLine(
 				viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
@@ -444,9 +444,9 @@ public:
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
 			v1 = PVM * v1;
-			v1 = v1 * (1 / v1.m_data[3]);
+			v1 = v1 * (1.0f / v1.m_data[3]);
 			v2 = PVM * v2;
-			v2 = v2 * (1 / v2.m_data[3]);
+			v2 = v2 * (1.0f / v2.m_data[3]);
 
 			bresenhamLine(
 				viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
@@ -467,7 +467,7 @@ public:
 
 		Vertex v = vertexBuffer[0]; // Because of this access to the vertex buffer we need to check if it contains at least 1 alement
 		v = PVM * v;
-		v = v * (1 / v.m_data[3]);
+		v = v * (1.0f / v.m_data[3]);
 
 		int startx = viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0];
 		int starty = viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0];
@@ -478,9 +478,9 @@ public:
 			Vertex v1 = vertexBuffer[i];
 			Vertex v2 = vertexBuffer[i + 1];
 			v1 = PVM * v1;
-			v1 = v1 * (1 / v1.m_data[3]);
+			v1 = v1 * (1.0f / v1.m_data[3]);
 			v2 = PVM * v2;
-			v2 = v2 * (1 / v2.m_data[3]);
+			v2 = v2 * (1.0f / v2.m_data[3]);
 
 			bresenhamLine(
 				viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
@@ -493,7 +493,7 @@ public:
 
 		Vertex v2 = vertexBuffer[length];
 		v2 = PVM * v2;
-		v2 = v2 * (1 / v2.m_data[3]);
+		v2 = v2 * (1.0f / v2.m_data[3]);
 
 		int endx = viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0];
 		int endy = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
@@ -578,9 +578,9 @@ public:
 				Vertex v1 = vertexBuffer[i];
 				Vertex v2 = vertexBuffer[i + 1];
 				v1 = PVM * v1;
-				v1 = v1 * (1 / v1.m_data[3]);
+				v1 = v1 * (1.0f / v1.m_data[3]);
 				v2 = PVM * v2;
-				v2 = v2 * (1 / v2.m_data[3]);
+				v2 = v2 * (1.0f / v2.m_data[3]);
 
 				int y1 = viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0];
 				int y2 = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
@@ -606,10 +606,10 @@ public:
 			// Add first and the last vertex into the list
 			Vertex v = vertexBuffer[0];
 			v = PVM * v;
-			v = v * (1 / v.m_data[3]);
+			v = v * (1.0f / v.m_data[3]);
 			Vertex v2 = vertexBuffer[length];
 			v2 = PVM * v2;
-			v2 = v2 * (1 / v2.m_data[3]);
+			v2 = v2 * (1.0f / v2.m_data[3]);
 
 			int startx = viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0];
 			int starty = viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0];
@@ -665,7 +665,7 @@ public:
 							float temp = (x2*z1 - z2 * x1);
 
 							for (int j = x1 + 1; j <= x2; ++j) {
-								float z = 1/((z2*j - z1*j + temp) / (x2 - x1));
+								float z = 1.0f /((z2*j - z1*j + temp) / (x2 - x1));
 								int idx = y * width + j;
 								if (depthBuffer[idx] > z) {
 									depthBuffer[idx] = z;
@@ -796,66 +796,61 @@ public:
 	///		@param ray[in] ray casted from the viewer(camera) to the primitive
 	///		@param intersection[in] the point of intersection of the ray with the primitive
 	///		@param mat[in] material used for the lightning model
-	///		@param xPos[in] x-center-coordinate of the sphere where is the intersection 
-	///		@return vertex cointaining the resulting color of the pixel (r,g,b,1)
-	Vertex phong(Ray &ray, Intersection &intersection, Material &mat, float xPos) {
+	///		@param ret[in] vector cointaining the resulting color of the pixel (r,g,b,1)
+	void phong(Ray &ray, Intersection &intersection, Material &mat, Vertex &ret) {
 		
-		Vertex ret;
-		Vertex matColor(mat.r, mat.g, mat.b, 1);
-		matColor = matColor * mat.kd;
+		Vertex matColor(mat.r* mat.kd, mat.g* mat.kd, mat.b* mat.kd, 1);
 
 		// Go through each light in the scene and sum their influence on given point
 		for (unsigned int i = 0; i < lights.size(); i++) {
 			Light l = lights[i];
-			Vertex toLight = intersection.position - l.position;	
-			normalize(toLight);
+			
+			Vertex L = l.position - intersection.position;
+			float dist = vectorLength(l.position, intersection.position); // distance from light to ray intersection point
+			normalize(L);
 
-			Ray r;
-			r.dir = toLight*-1;
-			r.origin = intersection.position;
+			Ray r(intersection.position, L);
 			
 			// Check if the light source is shadowed by an object
 			// if it is hidden, continue with next light source
-			bool lightSourceHidden = true;
+			bool lightSourceHidden = false;
 
 			for (unsigned int j = 0; j < polygons.size(); ++j) {
-				/*if (poly == polygons[j])
-					continue;*/
+
 				Intersection Int = polygons[j].intersects(r);
-				if (Int.distance != INFINITY && materials[polygons[j].matIdx].ks == 0.0f) {
-					lightSourceHidden = false;
+				
+				if (abs(dist - Int.distance) < 0.01f) continue; // eliminate floating point arithmetic inprecision
+				
+				if (Int.distance != INFINITY && Int.distance < dist) {
+					lightSourceHidden = true;
 					break;
 				}
 			}
-			if (!lightSourceHidden) continue;
+			if (lightSourceHidden) continue;
 				
 			for (unsigned int j = 0; j < spheres.size(); ++j) {
-				if (spheres[j].center.m_data[0] == xPos) {
-					continue; // eliminate self intersection for spheres
-				}
+
 				Intersection Int = spheres[j].intersects(r);
-				if (Int.distance != INFINITY) {
-					lightSourceHidden = false;
+				
+				if (abs(dist - Int.distance) < 0.01f) continue; // eliminate floating point arithmetic inprecision
+				
+				if (Int.distance != INFINITY && Int.distance < dist) {
+					lightSourceHidden = true;
 					break;
 				}
 			}
-			if (!lightSourceHidden)	continue;
+			if (lightSourceHidden)	continue;
 
 			
-			Vertex light(l.r, l.g, l.b, 1);
-
-			Vertex L = l.position - intersection.position;
-			normalize(L);
-			Vertex minusL = L*-1;
-			Vertex R = minusL - intersection.normal * dot(minusL, intersection.normal) * 2;
+			Vertex light(l.r, l.g, l.b, 1.0f);			
+			Vertex minusL = L*-1.0f;
+			Vertex R = minusL - intersection.normal * dot(minusL, intersection.normal) * 2.0f;
 
 			Vertex v = matColor * light * std::max(0.0f, dot(intersection.normal, L));	// diffuse
 			v += std::pow(std::max(0.0f, dot(R, ray.dir)), mat.shine) * mat.ks;			// specular
 
 			ret += v;
 		}
-		
-		return ret;
 	}
 
 	/// Accepts given ray, determines the color of point in the scene
@@ -890,42 +885,22 @@ public:
 		}
 
 		Vertex hitColor;
-		float coef;
-		bool isRefracting = false;
 		
 		// check if any intersection has been found
 		if (bestInt.distance < INFINITY) {
-			
+
 			// change the orientation of the ray to save computational time in phong model
-			Ray temp = r;
-			temp.dir = temp.dir * -1; // TODO - V POZDEJSICH REKURZICH BY SE ASI DELAT NEMELO???
+			Ray temp(r.origin, r.dir * -1.0f);
 
 			if (collidedWithPolygon) {				// ray collided with a polygon first				
 				if (!bestPolygon.matType)			// the material of the polygon is a default material (Material class)
-					hitColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);
+					phong(temp, bestInt, materials[bestPolygon.matIdx], hitColor);
 				else								// the material of the polygon is a emissive material (EmissiveMaterial class)
-					hitColor = phong(temp, bestInt, materials[bestPolygon.matIdx], -1);// TODO - phong with emissive material		
-
-				
-				if (materials[bestPolygon.matIdx].ks == 0.0f && materials[bestPolygon.matIdx].T == 0.0f)
-					return hitColor;				// material specular coef is 0 -> the ray will not reflect IF the material is not transparent
-
-				if (materials[bestPolygon.matIdx].T != 0.0f)
-					isRefracting = true;			// material is transparent - we need to generate refracted rays
-
-				coef = materials[bestPolygon.matIdx].ks;
+					phong(temp, bestInt, materials[bestPolygon.matIdx], hitColor);// TODO - phong with emissive material		
 			}
 			else {
 				//  ray collided with a sphere first
-				hitColor = phong(temp, bestInt, materials[bestSphere.matIdx], bestSphere.center.m_data[0]);
-				
-				if (materials[bestSphere.matIdx].ks == 0.0f && materials[bestSphere.matIdx].T == 0.0f)
-					return hitColor;	// material specular coef is 0 -> the ray will not reflect IF the material is not transparent
-				
-				if (materials[bestSphere.matIdx].T != 0.0f)
-					isRefracting = true;	// material is transparent - we need to generate refracted rays
-
-				coef = materials[bestSphere.matIdx].ks;
+				phong(temp, bestInt, materials[bestSphere.matIdx], hitColor);
 			}
 		}
 		else {
@@ -933,14 +908,15 @@ public:
 			return Vertex(clearColor.r, clearColor.g, clearColor.b, 1);
 		}
 
-		// Compute reflected ray
-		Ray newRay;
-		newRay.origin = bestInt.position;
-		newRay.dir = (r.dir) - (bestInt.normal * 2 * dot(bestInt.normal, r.dir));
-		normalize(newRay.dir);
+		if (bestMaterial.ks == 0.0f && bestMaterial.T == 0.0f)
+			return hitColor;				// material specular coef is 0 -> the ray will not reflect IF the material is not transparent		
 
-		if (isRefracting) {
-			// Indicated that we need to send refracted rays from the current intersection point
+		// Compute reflected ray
+		Ray reflectedRay(bestInt.position, (r.dir) - (bestInt.normal * 2 * dot(bestInt.normal, r.dir)));
+		normalize(reflectedRay.dir);
+
+		if (bestMaterial.T != 0.0f) { 
+			// material is transparent - we need to generate refracted rays
 			Ray refractedRay;
 			
 			Vertex normal = bestInt.normal;
@@ -963,16 +939,16 @@ public:
 				refractedRay.dir = normal * -sqrterm + r.dir * gamma;				
 				normalize(refractedRay.dir);
 
-				hitColor = hitColor * (1 - bestMaterial.T) + traceRay(refractedRay, depth) * bestMaterial.T;
+				hitColor += traceRay(refractedRay, depth + 1) * bestMaterial.T;
 			}
 		}
 				
 		return (depth + 1 > MAX_RT_RECURSION_DEPTH) ?
 			// We reached max recursion depth - return current material color only 
-			hitColor * (1-coef) :		
+			hitColor : 
 
 			// Max depth has not been reached - combine pixel color with output of further recursion
-			(hitColor * (1 - coef) + traceRay(newRay, depth + 1) * coef);	
+			(hitColor + traceRay(reflectedRay, depth + 1) * bestMaterial.ks);
 	}
 
 	/// Starts ray tracing in the current scene
@@ -987,7 +963,7 @@ public:
 		Vp.m_data[1][3] = viewport.m_data[3][0];
 		Matrix MVP = invMV * projectionMatricesStack.back().inverse() * Vp.inverse();
 
-		// define the origin of all the rays
+		// define the origin of all rays
 		Ray r;
 		r.origin = invMV * Vertex(0, 0, 0, 1);
 		
@@ -996,10 +972,9 @@ public:
 			for (int x = 0; x < width; x++) {
 				
 				// direction of current ray				
-				r.dir = MVP * Vertex(x , y, -1, 1) - r.origin;
+				r.dir = MVP * Vertex(x , y, -1.0f, 1.0f) - r.origin;
 				normalize(r.dir);
-				if (x == 110 && y == 512 - 350)
-					std::cout << "a";
+
 				// Trace this ray and get the color of pixel on (x,y)
 				Vertex pixelColor = traceRay(r, 0);
 				setPixel(x, y, pixelColor.m_data[0], pixelColor.m_data[1], pixelColor.m_data[2]);

@@ -229,11 +229,11 @@ void sglVertex4f(float x, float y, float z, float w) {
 }
 
 void sglVertex3f(float x, float y, float z) {
-	currentContext->vertexBuffer.emplace_back(Vertex(x, y, z, 1));
+	currentContext->vertexBuffer.emplace_back(Vertex(x, y, z, 1.0f));
 }
 
 void sglVertex2f(float x, float y) {
-	currentContext->vertexBuffer.emplace_back(Vertex(x, y, 0, 1));
+	currentContext->vertexBuffer.emplace_back(Vertex(x, y, 0.0f, 1.0f));
 }
 
 void sglCircle(float x, float y, float z, float radius) {
@@ -258,13 +258,13 @@ void sglArc(float x, float y, float z, float radius, float from, float to) {
 
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
-	if (to >= 2 * M_PI) {
-		to = fmod(to, 2 * M_PI);
+	if (to >= 2.0f * M_PI) {
+		to = fmod(to, 2.0f * M_PI);
 
-		if (to == 0.0f) to = 2 * M_PI;
+		if (to == 0.0f) to = 2.0f * M_PI;
 	}
 
-	if (from >= 2 * M_PI) from = fmod(from, 2 * M_PI);
+	if (from >= 2.0f * M_PI) from = fmod(from, 2.0f * M_PI);
 
 	if (radius < 0 || to < from) { _libStatus = SGL_INVALID_VALUE; return; }
 
@@ -574,7 +574,7 @@ void sglSphere(const float x,
 
 	currentContext->spheres.push_back(
 		Sphere(
-			Vertex(x, y, z, 1),
+			Vertex(x, y, z, 1.0f),
 			radius,
 			currentContext->materials.size() - 1
 		)
@@ -606,7 +606,7 @@ void sglPointLight(const float x,
 
 	currentContext->lights.push_back(
 		Light(
-			Vertex(x, y, z, 1),
+			Vertex(x, y, z, 1.0f),
 			r,g,b
 		)
 	);
