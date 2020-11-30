@@ -239,7 +239,7 @@ public:
 		// Compute the transformed radius
 		float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
 		float Pscale = P.m_data[0][0] * P.m_data[1][1] - P.m_data[1][0] * P.m_data[0][1];
-		r *= Q_rsqrt(MVscale * Pscale * viewportScale);
+		r *= sqrt(MVscale * Pscale * viewportScale);
 		
 		if (areaMode == SGL_FILL) {
 
@@ -258,8 +258,8 @@ public:
 				x1 = (2 * stx - sqrt(4 * stx*stx + 4 * K)) / 2;
 				*/
 
-				x1 = int(outerContent - Q_rsqrt(sqrtContent - ((count - sty)*(count - sty))));
-				x2 = int(outerContent + Q_rsqrt(sqrtContent - ((count - sty)*(count - sty))));
+				x1 = int(outerContent - sqrt(sqrtContent - ((count - sty)*(count - sty))));
+				x2 = int(outerContent + sqrt(sqrtContent - ((count - sty)*(count - sty))));
 
 				bresenhamLine(x1+1, x2, count, count);
 			}
@@ -768,14 +768,16 @@ public:
 	///		@return SGL_NO_ERROR on successful clear, SGL_INVALID_VALUE otherwise
 	sglEErrorCode clearBuffer(unsigned what) {
 		if (what == (SGL_COLOR_BUFFER_BIT | SGL_DEPTH_BUFFER_BIT)) {
-			for (int i = 0; i < width * height; i += 3) {
+			for (int i = 0; i < width * height; ++i) {
+				depthBuffer[i] = INFINITY;
+			}
+			for (int i = 0; i < width * height * 3; ++i) {
 				colorBuffer[i] = clearColor.r;
 				colorBuffer[i + 1] = clearColor.g;
 				colorBuffer[i + 2] = clearColor.b;
-				depthBuffer[i] = depthBuffer[i+1] = depthBuffer[i+2] = INFINITY;
 			}
 		} else if (what == SGL_COLOR_BUFFER_BIT) {
-			for (int i = 0; i < width * height; i += 3) {
+			for (int i = 0; i < width * height * 3; i += 3) {
 				colorBuffer[i] = clearColor.r;
 				colorBuffer[i + 1] = clearColor.g;
 				colorBuffer[i + 2] = clearColor.b;
@@ -846,8 +848,8 @@ public:
 			Vertex minusL = L*-1.0f;
 			Vertex R = minusL - intersection.normal * dot(minusL, intersection.normal) * 2.0f;
 
-			Vertex v = matColor * light * std::max(0.0f, dot(intersection.normal, L));	// diffuse
-			v += std::pow(std::max(0.0f, dot(R, ray.dir)), mat.shine) * mat.ks;			// specular
+			Vertex v = matColor * light * std::max(0.0f, dot(intersection.normal, L));			// diffuse
+			v += light * std::pow(std::max(0.0f, dot(R, ray.dir)), mat.shine) * mat.ks;			// specular
 
 			ret += v;
 		}

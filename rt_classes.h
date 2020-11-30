@@ -2,12 +2,6 @@
 
 #include "vertex.h"
 
-/// Computation of sqrt of a floating point number
-/// ! This function was taken fom the Quake 3 game implementation !
-/// We don't take any credits for this
-///		@param number[in] number to compute sqrt from
-float Q_rsqrt(float number);
-
 /// Computes dot product of two vectors
 ///		@param a[in] 1st vector
 ///		@param b[in] 2nd vector
@@ -275,9 +269,7 @@ struct Sphere {
 			else 
 				t = (-b - sqrt(disc)) / (2.0f * a);	// The closest int. otherwise
 				
-			if (t < 0.01f) return Intersection(); // Eliminates the float inacurracy while computing intersection
-			
-			//mùže být t záporné?
+			if (t < THRESHOLD) return Intersection(); // Eliminates the float inacurracy while computing intersection
 			
 			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
@@ -362,7 +354,7 @@ struct Polygon {
 		edge2 = c - a;
 		cross(r.dir, edge2, h);
 		_a = dot(edge1, h);
-		if (_a > -0.01f && _a < 0.01f) {
+		if (_a > -THRESHOLD && _a < THRESHOLD) {
 			return Int;
 		}
 		f = 1.0f / _a;
@@ -378,7 +370,7 @@ struct Polygon {
 		}
 
 		float t = f * dot(edge2, q);
-		if (t > 0.001f) {
+		if (t > THRESHOLD) {
 			Int.position.m_data[0] = r.origin.m_data[0] + t * r.dir.m_data[0];
 			Int.position.m_data[1] = r.origin.m_data[1] + t * r.dir.m_data[1];
 			Int.position.m_data[2] = r.origin.m_data[2] + t * r.dir.m_data[2];
@@ -395,22 +387,6 @@ bool operator==(const Polygon& lhs, const Polygon& rhs) {
 	else if (lhs.c != rhs.c) return false;
 	else if (lhs.normal != rhs.normal) return false;
 	return true;
-}
-
-float Q_rsqrt(float number) {
-	long i;
-	float x2, y;
-	const float threehalfs = 1.5F;
-
-	x2 = number * 0.5f;
-	y = number;
-	i = *(long *)&y;                       // evil floating point bit level hacking
-	i = 0x5f3759df - (i >> 1);             // what the fuck? 
-	y = *(float *)&i;
-	y = y * (threehalfs - (x2 * y * y));   // 1st iteration
-//	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
-
-	return y;
 }
 
 inline float dot(const Vertex &a, const Vertex &b)

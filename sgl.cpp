@@ -9,6 +9,7 @@
 #define _USE_MATH_DEFINES
 
 #define MAX_RT_RECURSION_DEPTH 8
+#define THRESHOLD 0.01f
 
 #include "sgl.h"
 #include "context.h"
