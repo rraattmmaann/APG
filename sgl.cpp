@@ -260,12 +260,12 @@ void sglArc(float x, float y, float z, float radius, float from, float to) {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return; }
 
 	if (to >= 2.0f * M_PI) {
-		to = fmod(to, 2.0f * M_PI);
+		to = fmod(to, 2.0f * float(M_PI));
 
-		if (to == 0.0f) to = 2.0f * M_PI;
+		if (to == 0.0f) to = 2.0f * float(M_PI);
 	}
 
-	if (from >= 2.0f * M_PI) from = fmod(from, 2.0f * M_PI);
+	if (from >= 2.0f * M_PI) from = fmod(from, 2.0f * float(M_PI));
 
 	if (radius < 0 || to < from) { _libStatus = SGL_INVALID_VALUE; return; }
 

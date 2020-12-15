@@ -1,5 +1,6 @@
 #pragma once
 #define _USE_MATH_DEFINES
+
 #include <cmath> 
 #include <iostream>
 #include <vector>
@@ -149,7 +150,7 @@ public:
 		float y1;
 		float x2;
 		float y2;
-		int steps = 40.0f * (to - from) / (2.0f * M_PI);
+		int steps = int(40.0f * (to - from) / (2.0f * M_PI));
 
 		if (areaMode == SGL_FILL) {
 			sglBegin(SGL_POLYGON);
@@ -191,7 +192,7 @@ public:
 		}
 
 		float x2, y2;
-		float alpha = 2.0f * M_PI / 40.0f;
+		float alpha = 2.0f * float(M_PI) / 40.0f;
 		float x1 = 1.0f;
 		float y1 = 0.0f;
 		float CA = cos(alpha);
@@ -233,8 +234,8 @@ public:
 		Vertex stred(xs, ys, zs, 1);
 		stred = (P * (MV * stred));
 		stred = stred * (1.0f / stred.m_data[3]);
-		int stx = viewport.m_data[0][0] * stred.m_data[0] + viewport.m_data[2][0];
-		int sty = viewport.m_data[1][0] * stred.m_data[1] + viewport.m_data[3][0];
+		int stx = int(viewport.m_data[0][0] * stred.m_data[0] + viewport.m_data[2][0]);
+		int sty = int(viewport.m_data[1][0] * stred.m_data[1] + viewport.m_data[3][0]);
 
 		// Compute the transformed radius
 		float MVscale = MV.m_data[0][0] * MV.m_data[1][1] - MV.m_data[1][0] * MV.m_data[0][1];
@@ -246,11 +247,11 @@ public:
 			int x1;
 			int x2;
 
-			int to = (sty + round(r));
+			int to = int(sty + round(r));
 			float sqrtContent = (r*r);
 			float outerContent = stx + 0.5f;
 
-			for (int count = (sty - r); count <= to; ++count) {
+			for (int count = int(sty - r); count <= to; ++count) {
 				/*
 				// dosazeni do vzorce kruhu a vypocitani xove souradnice bodu - stara verze
 				int K = r * r - count * count + 2 * sty * count - sty * sty - stx * stx;
@@ -267,8 +268,8 @@ public:
 
 			int x, y, p;
 			x = 0;
-			y = r;
-			p = 3 - 2 * r;
+			y = int(r);
+			p = int(3.0f - 2.0f * r);
 			while (x < y) {
 				setSymetricalPixels(x, y, stx, sty);
 				if (p < 0) {
@@ -391,15 +392,15 @@ public:
 			int x = static_cast<int>(viewport.m_data[0][0] * res.m_data[0] + viewport.m_data[2][0]);
 			int y = static_cast<int>(viewport.m_data[1][0] * res.m_data[1] + viewport.m_data[3][0]);
 
-			int currPointSize = pointSize;
+			int currPointSize = int(pointSize);
 
 			if (currPointSize % 2 == 0) {
-				x = x - currPointSize * 0.5f - 1.f;
-				y = y - currPointSize * 0.5f - 1.f;
+				x = int(x - currPointSize * 0.5f - 1.f);
+				y = int(y - currPointSize * 0.5f - 1.f);
 			}
 			else {
-				x = x - (currPointSize - 1.f) * 0.5f;
-				y = y - (currPointSize - 1.f) * 0.5f;
+				x = int(x - (currPointSize - 1.f) * 0.5f);
+				y = int(y - (currPointSize - 1.f) * 0.5f);
 			}
 
 			for (int a = 0; a < currPointSize; a++) {
@@ -426,10 +427,10 @@ public:
 			v2 = v2 * (1.0f / v2.m_data[3]);
 
 			bresenhamLine(
-				viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0],
-				viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0]
+				int(viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0]),
+				int(viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0]),
+				int(viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0]),
+				int(viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0])
 			);
 		}
 	}
@@ -449,10 +450,10 @@ public:
 			v2 = v2 * (1.0f / v2.m_data[3]);
 
 			bresenhamLine(
-				viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0],
-				viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0]
+				int(viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0]),
+				int(viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0]),
+				int(viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0]),
+				int(viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0])
 			);
 		}
 	}
@@ -469,8 +470,8 @@ public:
 		v = PVM * v;
 		v = v * (1.0f / v.m_data[3]);
 
-		int startx = viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0];
-		int starty = viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0];
+		int startx = int(viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0]);
+		int starty = int(viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0]);
 
 		int length = 0;
 
@@ -483,10 +484,10 @@ public:
 			v2 = v2 * (1.0f / v2.m_data[3]);
 
 			bresenhamLine(
-				viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
-				viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0],
-				viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0]
+				int(viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0]),
+				int(viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0]),
+				int(viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0]),
+				int(viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0])
 			);
 			length++;
 		}
@@ -495,8 +496,8 @@ public:
 		v2 = PVM * v2;
 		v2 = v2 * (1.0f / v2.m_data[3]);
 
-		int endx = viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0];
-		int endy = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
+		int endx = int(viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0]);
+		int endy = int(viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0]);
 
 		bresenhamLine(endx, startx, endy, starty);
 	}
@@ -507,10 +508,10 @@ public:
 	///		@param b[in] upper end of the edge
 	///		@param intersections[in] vector of x-coordinates of all found intersections
 	inline void getIntersections(int y, Vertex &a, Vertex &b, std::vector<int> &intersections) {
-		int x1 = a.m_data[0];
-		int y1 = a.m_data[1];
-		int x2 = b.m_data[0];		
-		int y2 = b.m_data[1];
+		int x1 = int(a.m_data[0]);
+		int y1 = int(a.m_data[1]);
+		int x2 = int(b.m_data[0]);		
+		int y2 = int(b.m_data[1]);
 
 		if (x2-x1 == 0) {
 			intersections.emplace_back(x1);
@@ -523,7 +524,7 @@ public:
 
 		// y = slope * x + shift
 		// dosadime za y promenou y xd
-		int x = (y - shift) / slope;
+		int x = int((y - shift) / slope);
 		intersections.emplace_back(x);
 	}
 
@@ -534,10 +535,10 @@ public:
 	///		@param b[in] upper end of the edge
 	///		@param intersections[in] vector of couple (x-coordinate, depth) of all found intersections
 	inline void getIntersectionsDepth(int y, Vertex &a, Vertex &b, std::vector<std::tuple<int, float>> &intersections) {
-		int x1 = a.m_data[0];
-		int y1 = a.m_data[1];
-		int x2 = b.m_data[0];
-		int y2 = b.m_data[1];
+		int x1 = int(a.m_data[0]);
+		int y1 = int(a.m_data[1]);
+		int x2 = int(b.m_data[0]);
+		int y2 = int(b.m_data[1]);
 		float z1 = a.m_data[2];
 		float z2 = b.m_data[2];
 		float z = (z1*(y2 - y) + z2 * (y - y1)) / (y2 - y1);
@@ -553,7 +554,7 @@ public:
 
 		// y = slope * x + shift
 		// dosadime za y promenou y xd
-		int x = (y - shift) / slope;
+		int x = int((y - shift) / slope);
 		intersections.emplace_back(std::make_tuple(x, z));
 	}
 
@@ -582,18 +583,18 @@ public:
 				v2 = PVM * v2;
 				v2 = v2 * (1.0f / v2.m_data[3]);
 
-				int y1 = viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0];
-				int y2 = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
+				int y1 = int(viewport.m_data[1][0] * v1.m_data[1] + viewport.m_data[3][0]);
+				int y2 = int(viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0]);
 				
 				screenSpaceVertices.emplace_back(Vertex(
 					viewport.m_data[0][0] * v1.m_data[0] + viewport.m_data[2][0],
-					y1,
+					float(y1),
 					viewport.m_data[0][1] * v1.m_data[2] + viewport.m_data[1][1],
 					1)
 				);
 				screenSpaceVertices.emplace_back(Vertex(
 					viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0],
-						y2, 
+					float(y2), 
 					viewport.m_data[0][1] * v2.m_data[2] + viewport.m_data[1][1],
 						1)
 				);
@@ -611,16 +612,16 @@ public:
 			v2 = PVM * v2;
 			v2 = v2 * (1.0f / v2.m_data[3]);
 
-			int startx = viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0];
-			int starty = viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0];
+			int startx = int(viewport.m_data[0][0] * v.m_data[0] + viewport.m_data[2][0]);
+			int starty = int(viewport.m_data[1][0] * v.m_data[1] + viewport.m_data[3][0]);
 			float startz = viewport.m_data[0][1] * v.m_data[2] + viewport.m_data[1][1];		
 
-			int endx = viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0];
-			int endy = viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0];
+			int endx = int(viewport.m_data[0][0] * v2.m_data[0] + viewport.m_data[2][0]);
+			int endy = int(viewport.m_data[1][0] * v2.m_data[1] + viewport.m_data[3][0]);
 			float endz = viewport.m_data[0][1] * v2.m_data[2] + viewport.m_data[1][1];
 
-			screenSpaceVertices.emplace_back(Vertex(endx, endy, endz, 1));
-			screenSpaceVertices.emplace_back(Vertex(startx, starty, startz, 1));
+			screenSpaceVertices.emplace_back(Vertex(float(endx), float(endy), endz, 1));
+			screenSpaceVertices.emplace_back(Vertex(float(startx), float(starty), startz, 1));
 
 			// Run the scanline algorithm on the screenspace vertices
 			for (int y = yMax; y > yMin; --y) {
@@ -633,8 +634,8 @@ public:
 					Vertex a = screenSpaceVertices[i];
 					Vertex b = screenSpaceVertices[i + 1];
 
-					int y1 = a.m_data[1];
-					int y2 = b.m_data[1];
+					int y1 = int(a.m_data[1]);
+					int y2 = int(b.m_data[1]);
 
 					if (y1 < y2) {
 						int tmp = y1;
@@ -754,13 +755,13 @@ public:
 	///		@param y[in] viewport origin y coordinate(with respect to the canvas)
 	///		@param width[in] viewport width in pixels
 	///		@param height[in] viewport height in pixels
-	void setViewport(float x, float y, float width, float height) {
+	void setViewport(int x, int y, int width, int height) {
 		viewport.m_data[0][0] = width / 2.0f;
 		viewport.m_data[1][0] = height / 2.0f;
 		viewport.m_data[2][0] = x + width / 2.0f;
 		viewport.m_data[3][0] = y + height / 2.0f;
 
-		viewportScale = (width*height) / 4;
+		viewportScale = (width*height) / 4.0f;
 	}
 
 	/// Clear the buffer specified by the input value, returns error otherwise
@@ -771,7 +772,7 @@ public:
 			for (int i = 0; i < width * height; ++i) {
 				depthBuffer[i] = INFINITY;
 			}
-			for (int i = 0; i < width * height * 3; ++i) {
+			for (int i = 0; i < width * height * 3; i += 3) {
 				colorBuffer[i] = clearColor.r;
 				colorBuffer[i + 1] = clearColor.g;
 				colorBuffer[i + 2] = clearColor.b;
@@ -845,7 +846,7 @@ public:
 
 			
 			Vertex light(l.r, l.g, l.b, 1.0f);			
-			Vertex minusL = L*-1.0f;
+			Vertex minusL = L * -1.0f;
 			Vertex R = minusL - intersection.normal * dot(minusL, intersection.normal) * 2.0f;
 
 			Vertex v = matColor * light * std::max(0.0f, dot(intersection.normal, L));			// diffuse
@@ -857,7 +858,9 @@ public:
 
 	/// Accepts given ray, determines the color of point in the scene
 	/// and return given color, alternatively sends reflected ray
-	/// 
+	///		@param r[in] ray to be traced
+	///		@param depth[in] current depth of the ray recursion within the scene
+	///		@return Vertex containing a color of hit pixel
 	Vertex traceRay(Ray &r, int depth) {
 
 		Intersection	bestInt;
@@ -970,11 +973,11 @@ public:
 		r.origin = invMV * Vertex(0, 0, 0, 1);
 		
 		// go through all of the pixels and cast rays from the camera through each pixel
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
 				
 				// direction of current ray				
-				r.dir = MVP * Vertex(x , y, -1.0f, 1.0f) - r.origin;
+				r.dir = MVP * Vertex(float(x) , float(y), -1.0f, 1.0f) - r.origin;
 				normalize(r.dir);
 
 				// Trace this ray and get the color of pixel on (x,y)

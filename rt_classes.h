@@ -35,7 +35,16 @@ struct Material {
 	float T;
 	float ior;
 
-	Material() {}
+	Material() {
+		r = 0.0f;
+		g = 0.0f;
+		b = 0.0f;
+		kd = 0.0f;
+		ks = 0.0f;
+		shine = 0.0f;
+		T = 0.0f;
+		ior = 0.0f;
+	}
 
 	Material(float _r, float _g, float _b, float _kd, float _ks, float _shine, float _T, float _ior) {
 		r = _r;
@@ -215,7 +224,7 @@ struct Sphere {
 
 	Sphere() {}
 
-	Sphere(const Vertex c, float rad, float idx) {
+	Sphere(const Vertex c, float rad, int idx) {
 		center = c;
 		radius = rad;
 		matIdx = idx;
@@ -251,10 +260,12 @@ struct Sphere {
 		float z = center.m_data[2];
 		Intersection Int;
 
-		Vertex dist;
-		dist.m_data[0] = r.origin.m_data[0] - x;
-		dist.m_data[1] = r.origin.m_data[1] - y;
-		dist.m_data[2] = r.origin.m_data[2] - z;
+		Vertex dist(
+			r.origin.m_data[0] - x,
+			r.origin.m_data[1] - y,
+			r.origin.m_data[2] - z,
+			1.0f
+		);
 
 		float a = dot(r.dir, r.dir);
 		float b = 2.0f * dot(dist, r.dir);

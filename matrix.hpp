@@ -85,6 +85,11 @@ public:
 		return *this;
 	}
 
+
+	/* --- FUNCTIONS ---*/
+	/// Computes recurstion of current matrix
+	///	WARNING: black magic happening here
+	///		@return inverse of the current matrix
 	Matrix inverse() {
 		float A2323 = m_data[2][2] * m_data[3][3] - m_data[2][3] * m_data[3][2];
 		float A1323 = m_data[2][1] * m_data[3][3] - m_data[2][3] * m_data[3][1];
@@ -112,26 +117,25 @@ public:
 		det = 1 / det;
 
 		Matrix ret;
-			ret.m_data[0][0] = det * (m_data[1][1] * A2323 - m_data[1][2] * A1323 + m_data[1][3] * A1223);
-			ret.m_data[0][1] = det * -(m_data[0][1] * A2323 - m_data[0][2] * A1323 + m_data[0][3] * A1223);
-			ret.m_data[0][2] = det * (m_data[0][1] * A2313 - m_data[0][2] * A1313 + m_data[0][3] * A1213);
-			ret.m_data[0][3] = det * -(m_data[0][1] * A2312 - m_data[0][2] * A1312 + m_data[0][3] * A1212);
-			ret.m_data[1][0] = det * -(m_data[1][0] * A2323 - m_data[1][2] * A0323 + m_data[1][3] * A0223);
-			ret.m_data[1][1] = det * (m_data[0][0] * A2323 - m_data[0][2] * A0323 + m_data[0][3] * A0223);
-			ret.m_data[1][2] = det * -(m_data[0][0] * A2313 - m_data[0][2] * A0313 + m_data[0][3] * A0213);
-			ret.m_data[1][3] = det * (m_data[0][0] * A2312 - m_data[0][2] * A0312 + m_data[0][3] * A0212);
-			ret.m_data[2][0] = det * (m_data[1][0] * A1323 - m_data[1][1] * A0323 + m_data[1][3] * A0123);
-			ret.m_data[2][1] = det * -(m_data[0][0] * A1323 - m_data[0][1] * A0323 + m_data[0][3] * A0123);
-			ret.m_data[2][2] = det * (m_data[0][0] * A1313 - m_data[0][1] * A0313 + m_data[0][3] * A0113);
-			ret.m_data[2][3] = det * -(m_data[0][0] * A1312 - m_data[0][1] * A0312 + m_data[0][3] * A0112);
-			ret.m_data[3][0] = det * -(m_data[1][0] * A1223 - m_data[1][1] * A0223 + m_data[1][2] * A0123);
-			ret.m_data[3][1] = det * (m_data[0][0] * A1223 - m_data[0][1] * A0223 + m_data[0][2] * A0123);
-			ret.m_data[3][2] = det * -(m_data[0][0] * A1213 - m_data[0][1] * A0213 + m_data[0][2] * A0113);
-			ret.m_data[3][3] = det * (m_data[0][0] * A1212 - m_data[0][1] * A0212 + m_data[0][2] * A0112);
+		ret.m_data[0][0] = det * (m_data[1][1] * A2323 - m_data[1][2] * A1323 + m_data[1][3] * A1223);
+		ret.m_data[0][1] = det * -(m_data[0][1] * A2323 - m_data[0][2] * A1323 + m_data[0][3] * A1223);
+		ret.m_data[0][2] = det * (m_data[0][1] * A2313 - m_data[0][2] * A1313 + m_data[0][3] * A1213);
+		ret.m_data[0][3] = det * -(m_data[0][1] * A2312 - m_data[0][2] * A1312 + m_data[0][3] * A1212);
+		ret.m_data[1][0] = det * -(m_data[1][0] * A2323 - m_data[1][2] * A0323 + m_data[1][3] * A0223);
+		ret.m_data[1][1] = det * (m_data[0][0] * A2323 - m_data[0][2] * A0323 + m_data[0][3] * A0223);
+		ret.m_data[1][2] = det * -(m_data[0][0] * A2313 - m_data[0][2] * A0313 + m_data[0][3] * A0213);
+		ret.m_data[1][3] = det * (m_data[0][0] * A2312 - m_data[0][2] * A0312 + m_data[0][3] * A0212);
+		ret.m_data[2][0] = det * (m_data[1][0] * A1323 - m_data[1][1] * A0323 + m_data[1][3] * A0123);
+		ret.m_data[2][1] = det * -(m_data[0][0] * A1323 - m_data[0][1] * A0323 + m_data[0][3] * A0123);
+		ret.m_data[2][2] = det * (m_data[0][0] * A1313 - m_data[0][1] * A0313 + m_data[0][3] * A0113);
+		ret.m_data[2][3] = det * -(m_data[0][0] * A1312 - m_data[0][1] * A0312 + m_data[0][3] * A0112);
+		ret.m_data[3][0] = det * -(m_data[1][0] * A1223 - m_data[1][1] * A0223 + m_data[1][2] * A0123);
+		ret.m_data[3][1] = det * (m_data[0][0] * A1223 - m_data[0][1] * A0223 + m_data[0][2] * A0123);
+		ret.m_data[3][2] = det * -(m_data[0][0] * A1213 - m_data[0][1] * A0213 + m_data[0][2] * A0113);
+		ret.m_data[3][3] = det * (m_data[0][0] * A1212 - m_data[0][1] * A0212 + m_data[0][2] * A0112);
 		return ret;
 	}
 
-	/* --- FUNCTIONS ---*/
 	/// Fills the matrix with given data
 	///		@param m[in] matrix represented as an 16-float long 1D array
 	void initData(const float *m) {
