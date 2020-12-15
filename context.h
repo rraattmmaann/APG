@@ -904,13 +904,46 @@ public:
 					phong(temp, bestInt, materials[bestPolygon.matIdx], hitColor);// TODO - phong with emissive material		
 			}
 			else {
-				//  ray collided with a sphere first
+				// ray collided with a sphere first
 				phong(temp, bestInt, materials[bestSphere.matIdx], hitColor);
 			}
 		}
 		else {
-			// No intersection with the ray and scene - set background color
-			return Vertex(clearColor.r, clearColor.g, clearColor.b, 1);
+			// No intersection with the ray and scene - set background color or env. map
+
+			if (enviromentMaps.size() > 0) {
+				
+				// An enviroment map is defined, compute the pixel color from the texture
+				float c = sqrt(std::pow(r.dir.m_data[0],2) + std::pow(r.dir.m_data[1], 2));
+				float val = 0.0f;				
+				if (c > 0.0f) {
+					val = acos(r.dir.m_data[2])/(2 * c * (float)M_PI);
+				}
+				
+				// Get normalized U and V coordinates in the texture
+				// Note that 'V' has to be flipped -> the buffer is filled from TOP left corner,
+				// whereas the origin of u,v coords is in (0,0) on BOTTOM left
+				float u = 0.5f + val * r.dir.m_data[0];
+				float v = 0.5f + val * r.dir.m_data[1];
+
+				// Get real X,Y coordinates according to env. map width and height
+				int x = int(u * enviromentMaps[0].width);
+				int y = int((1-v) * enviromentMaps[0].height);
+
+				// Compute the index of the pixel in the texel array
+				int idx = (y * enviromentMaps[0].width + x) * 3;
+
+				// Return RGB color
+				return Vertex(
+					enviromentMaps[0].texels[idx],
+					enviromentMaps[0].texels[idx + 1],
+					enviromentMaps[0].texels[idx + 2],
+					1
+				);
+			
+			} else
+				// Return clearColor value - no enviroment map
+				return Vertex(clearColor.r, clearColor.g, clearColor.b, 1);
 		}
 
 		if (bestMaterial.ks == 0.0f && bestMaterial.T == 0.0f)

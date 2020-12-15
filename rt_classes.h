@@ -167,6 +167,20 @@ struct EnviromentMap {
 		height = h;
 		texels = tex;
 	}
+
+	EnviromentMap& operator=(const EnviromentMap& rhs) {
+		EnviromentMap temp(rhs);
+		swap(temp);
+		return *this;
+	}
+
+	/// Function for move constructor
+	///		@param rhs[in] reference to the ray with which data should be swapped 
+	void swap(EnviromentMap& rhs) {
+		std::swap(width, rhs.width);
+		std::swap(height, rhs.height);
+		std::swap(texels, rhs.texels);
+	}
 };
 
 
