@@ -75,11 +75,14 @@ public:
 	/// Vector containing all polygon in the scene
 	std::vector<Polygon> polygons;
 
-	/// Vector containing all light sources in the scene
+	/// Vector containing all point light sources in the scene
 	std::vector<Light> lights;
 
+	/// Vector containing all area light sources in the scene
+	std::vector<Polygon> areaLights;
+
 	/// Vector containing all emissive materials present in the scene
-	std::vector<EmissiveMaterial> emmisiveMaterials;
+	std::vector<EmissiveMaterial> emissiveMaterials;
 
 	/// Vector containing all environment maps present in the scene
 	std::vector<EnviromentMap> enviromentMaps;
@@ -856,6 +859,87 @@ public:
 		}
 	}
 
+	/// Phong illumination model modified to work with area lights in the scene
+	///		@param ray[in] ray casted from the viewer(camera) to the primitive
+	///		@param intersection[in] the point of intersection of the ray with the primitive
+	///		@param mat[in] material used for the lightning model
+	///		@param ret[in] vector cointaining the resulting color of the pixel (r,g,b,1)
+	void areaPhong(Ray &ray, Intersection &intersection, Material &mat, Vertex &ret) {
+
+		// Color of material of the object hit by given ray
+		Vertex matColor(mat.r* mat.kd, mat.g* mat.kd, mat.b* mat.kd, 1);		
+		Vertex p, L, zero{ 0,0,0,0 };
+		float r1, r2, A, u, v, w, dist;
+		bool lightSourceHidden;
+
+
+		// Go through each area light in the scene and sum their influence on given point
+		for (unsigned int i = 0; i < areaLights.size(); i++) {
+
+			Vertex e1 = areaLights[i].b - areaLights[i].a;		// 1st side of the triangle
+			Vertex e2 = areaLights[i].c - areaLights[i].a;		// 2nd side of the triangle
+			cross(e1, e2, p);
+			A = vectorLength(zero, p) * 0.5f;
+			EmissiveMaterial eM = emissiveMaterials[areaLights[i].matIdx];	// emissive material of the triangle
+			Vertex lightColor(eM.r, eM.g, eM.b, 1.0f);							// Color of the light (emisssive triangle)
+
+			// Cast 16 sample rays from given hitpoint
+			for (int j = 0; j < SAMPLES; ++j) {
+
+				// 2 random numbers in <0,1>
+				r1 = ((float)rand() / (RAND_MAX));
+				r2 = ((float)rand() / (RAND_MAX));
+
+				// Compute numbers in approopriate interval
+				
+				if (r1 + r2 > 1) {
+					u = 1.0f - r1;
+					v = 1.0f - r2;
+				}
+				else {
+					u = r1;
+					v = r2;
+				}
+
+				// Create random point light in the emissive triangle 
+				p = areaLights[i].a + e1 * u + e2 * v;
+
+				// Define vector to the created point light
+				L = p - intersection.position;
+				dist = vectorLength(p, intersection.position); // distance from light to ray intersection point
+				normalize(L);
+
+				// Create vector to the created point light
+				Ray r(intersection.position, L);
+
+				// Check if the light source is shadowed by an object
+				// if it is hidden, continue with next light source
+				lightSourceHidden = false;
+
+				for (unsigned int j = 0; j < polygons.size(); ++j) {
+
+					Intersection Int = polygons[j].intersects(r);
+
+					if (abs(dist - Int.distance) < 0.01f) continue; // eliminate floating point arithmetic inprecision
+
+					if (Int.distance != INFINITY && Int.distance < dist) {
+						lightSourceHidden = true;
+						break;
+					}
+				}
+				if (lightSourceHidden) continue;
+
+				Vertex minusL = L * -1.0f;
+
+				// Weight of this point should influence the final color
+				w = (A * dot(areaLights[i].normal, minusL)) / (SAMPLES * (eM.c0 + dist * eM.c1 + dist * dist * eM.c2));
+
+				// diffuse only, multiply by weight
+				ret += matColor * lightColor * std::max(0.0f, dot(intersection.normal, L)) * w; 
+			}
+		}
+	}
+
 	/// Accepts given ray, determines the color of point in the scene
 	/// and return given color, alternatively sends reflected ray
 	///		@param r[in] ray to be traced
@@ -867,6 +951,7 @@ public:
 		Polygon			bestPolygon;
 		Sphere			bestSphere;
 		Material		bestMaterial;
+		EmissiveMaterial bestEmMaterial;
 		bool			collidedWithPolygon = true;
 
 		// try ray - primitive intersection for all objects in the scene
@@ -875,7 +960,10 @@ public:
 			if (Int.distance < bestInt.distance) {
 				bestInt = Int;
 				bestPolygon = polygons[i];
-				bestMaterial = materials[polygons[i].matIdx];
+				if (!bestPolygon.matType)
+					bestMaterial = materials[polygons[i].matIdx];
+				else
+					bestEmMaterial = emissiveMaterials[polygons[i].matIdx];
 			}
 		}
 
@@ -898,14 +986,21 @@ public:
 			Ray temp(r.origin, r.dir * -1.0f);
 
 			if (collidedWithPolygon) {				// ray collided with a polygon first				
-				if (!bestPolygon.matType)			// the material of the polygon is a default material (Material class)
-					phong(temp, bestInt, materials[bestPolygon.matIdx], hitColor);
-				else								// the material of the polygon is a emissive material (EmissiveMaterial class)
-					phong(temp, bestInt, materials[bestPolygon.matIdx], hitColor);// TODO - phong with emissive material		
+				if (!bestPolygon.matType) {			// the material of the polygon is a default material (Material class)
+					if (areaLights.size() != 0)
+						areaPhong(temp, bestInt, bestMaterial, hitColor);	// areaLights
+					else
+						phong(temp, bestInt, bestMaterial, hitColor);		// point lights
+				}				
+					
+				else			
+					// the material of the polygon is an emissive material (EmissiveMaterial class)
+					// return the color of the emissive material light -> it was hit and nothing reflects
+					return Vertex(bestEmMaterial.r, bestEmMaterial.g, bestEmMaterial.b,1);	
 			}
 			else {
 				// ray collided with a sphere first
-				phong(temp, bestInt, materials[bestSphere.matIdx], hitColor);
+				phong(temp, bestInt, bestMaterial, hitColor);
 			}
 		}
 		else {
@@ -1000,7 +1095,6 @@ public:
 		Vp.m_data[1][1] = viewport.m_data[1][0];
 		Vp.m_data[1][3] = viewport.m_data[3][0];
 		Matrix MVP = invMV * projectionMatricesStack.back().inverse() * Vp.inverse();
-
 		// define the origin of all rays
 		Ray r;
 		r.origin = invMV * Vertex(0, 0, 0, 1);
@@ -1032,8 +1126,11 @@ public:
 		// get normal of the polygon
 		cross(p.b - p.a, p.c - p.a, p.normal);
 		normalize(p.normal);
-		p.matIdx = (addingEmissiveMaterial) ? emmisiveMaterials.size() - 1 : materials.size() - 1;
+		p.matIdx = (addingEmissiveMaterial) ? emissiveMaterials.size() - 1 : materials.size() - 1;
 		p.matType = addingEmissiveMaterial;
 		polygons.push_back(p);
+
+		if (addingEmissiveMaterial)	
+			areaLights.push_back(p);			
 	}
 };

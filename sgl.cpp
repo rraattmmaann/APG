@@ -10,6 +10,7 @@
 
 #define MAX_RT_RECURSION_DEPTH 8
 #define THRESHOLD 0.01f
+#define SAMPLES	16
 
 #include "sgl.h"
 #include "context.h"
@@ -594,6 +595,7 @@ void sglMaterial(const float r,
 	currentContext->materials.push_back(
 		Material(r, g, b, kd, ks, shine, T, ior)
 	);
+	currentContext->addingEmissiveMaterial = false;
 }
 
 void sglPointLight(const float x,
@@ -643,7 +645,7 @@ void sglEmissiveMaterial(const float r,
 {
 	if (sglBeginEndRunning || contextCounter < 1) { _libStatus = SGL_INVALID_OPERATION; return;	}
 
-	currentContext->emmisiveMaterials.push_back(
+	currentContext->emissiveMaterials.push_back(
 		EmissiveMaterial(r,g,b,c0,c1,c2)
 	);
 	currentContext->addingEmissiveMaterial = true;

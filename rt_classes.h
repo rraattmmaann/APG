@@ -36,14 +36,14 @@ struct Material {
 	float ior;
 
 	Material() {
-		r = 0.0f;
-		g = 0.0f;
-		b = 0.0f;
-		kd = 0.0f;
-		ks = 0.0f;
-		shine = 0.0f;
+		r = -1.0f;
+		g = -1.0f;
+		b = -1.0f;
+		kd = -1.0f;
+		ks = -1.0f;
+		shine = -1.0f;
 		T = 0.0f;
-		ior = 0.0f;
+		ior = -1.0f;
 	}
 
 	Material(float _r, float _g, float _b, float _kd, float _ks, float _shine, float _T, float _ior) {
@@ -106,7 +106,14 @@ struct EmissiveMaterial {
 	float c1;
 	float c2;
 
-	EmissiveMaterial() {}
+	EmissiveMaterial() {
+		r = 0.0f;
+		g = 0.0f;
+		b = 0.0f;
+		c0 = 0.0f;
+		c1 = 0.0f;
+		c2 = 0.0f;
+	}
 
 	EmissiveMaterial(float _r, float _g, float _b, float _c0, float _c1, float _c2) {
 		r = _r;
